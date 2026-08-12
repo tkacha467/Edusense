@@ -1,0 +1,339 @@
+📄 Product Requirements Document (PRD)
+EduSense AI
+AI-Powered Adaptive Learning & Knowledge Decay Prediction Platform
+
+Version: 1.0
+Prepared By: Tushar Kacha
+Project Type: AI-Powered EdTech SaaS Platform
+Current Stage: Architecture & Backend Design
+
+1. Project Vision
+Vision Statement
+
+EduSense AI is an AI-powered adaptive learning platform designed to help students learn more effectively by predicting knowledge decay, generating personalized assessments, and creating intelligent revision plans.
+
+Unlike traditional LMS platforms that only track marks, EduSense AI continuously analyzes a student's learning behavior, predicts when knowledge is likely to fade, and recommends the right content at the right time.
+
+The long-term goal is to build an intelligent personal learning companion powered by Artificial Intelligence, Machine Learning, and Large Language Models.
+
+2. Problem Statement
+
+Current learning platforms suffer from several limitations:
+
+No personalized learning paths
+Same assessment for every student
+No knowledge retention analysis
+No prediction of forgetting
+No adaptive revision plans
+No AI-assisted explanations
+No intelligent recommendations
+
+Students often forget concepts after learning because existing systems cannot identify when revision is needed.
+
+EduSense AI solves this problem.
+
+3. Objectives
+
+The platform aims to:
+
+Predict student forgetting probability
+Monitor learning progress
+Generate adaptive assessments
+Personalize revision plans
+Recommend learning resources
+Improve long-term knowledge retention
+Help faculty monitor students effectively
+4. Target Users
+Student
+
+Can:
+
+Register
+Login
+Complete onboarding
+Choose subjects
+Take assessments
+View predictions
+Receive recommendations
+Track learning progress
+Use AI Study Assistant
+Faculty
+
+Can:
+
+Login
+Create classrooms (future)
+Monitor students
+View analytics
+Review predictions
+Send interventions
+View reports
+Administrator (Future)
+
+Can:
+
+Manage users
+Manage subjects
+Configure platform settings
+View system analytics
+5. Core Modules
+Module 1 — Authentication
+
+Features:
+
+Student Registration
+Faculty Registration
+Login
+Logout
+Forgot Password
+Email Verification
+Firebase Authentication
+Role-Based Access
+Module 2 — Student Profile
+
+Features:
+
+Personal Information
+Institution
+Department
+Semester
+Avatar
+Learning Goals
+Preferred Language
+Module 3 — Learning Preferences
+
+Features:
+
+Subjects
+Skills
+Skill Level
+Weekly Study Hours
+Learning Style
+Target Goals
+Module 4 — Assessment Engine
+
+Features:
+
+Select Subject
+Select Difficulty
+Generate Assessment
+MCQ Questions
+Timer
+Auto Evaluation
+Score Calculation
+Assessment History
+Module 5 — AI Question Generator
+
+Powered by Gemini
+
+Features:
+
+Dynamic MCQ Generation
+Adaptive Difficulty
+Hint Generation
+Explanation Generation
+Follow-up Questions
+Module 6 — Knowledge Decay Prediction
+
+Powered by your ML model
+
+Features:
+
+Forget Probability
+Retention Score
+Mastery Score
+Prediction History
+Confidence Score
+Module 7 — Recommendation Engine
+
+Features:
+
+Personalized Revision Plan
+Weak Topic Detection
+Daily Study Plan
+Learning Suggestions
+Priority Ranking
+Module 8 — AI Study Assistant
+
+Features:
+
+Ask Questions
+Explain Concepts
+Summarize Notes
+Generate Flashcards
+Generate Practice Questions
+Module 9 — Analytics Dashboard
+
+Student Dashboard
+
+Shows:
+
+Today's Progress
+Weekly Progress
+Knowledge Score
+Forget Probability
+Revision Schedule
+Study Time
+Completed Assessments
+Recommendations
+
+Faculty Dashboard
+
+Shows:
+
+Student Performance
+Class Analytics
+At-Risk Students
+Knowledge Decay Trends
+Assessment Statistics
+6. Functional Requirements
+Authentication
+Register users
+Verify email
+Login
+Logout
+Reset password
+Student
+Manage profile
+Select subjects
+Take assessments
+View predictions
+View study plans
+Track progress
+Faculty
+View student analytics
+Monitor progress
+Review predictions
+Generate reports
+AI
+Generate assessments
+Explain answers
+Generate recommendations
+ML
+Predict forgetting
+Update knowledge profile
+Generate retention score
+7. Non-Functional Requirements
+
+Performance:
+
+Dashboard loads < 2 seconds
+Assessment generation < 5 seconds
+Prediction < 1 second
+
+Security:
+
+Firebase Authentication
+JWT Authorization
+HTTPS
+Password hashing
+Role-based access
+
+Scalability:
+
+SQLite → PostgreSQL
+Modular architecture
+REST API
+Repository Pattern
+
+Usability:
+
+Responsive UI
+Dark Mode
+Accessibility
+Mobile-friendly
+8. Technology Stack
+
+Frontend
+
+React
+TypeScript
+Vite
+Tailwind CSS
+
+Authentication
+
+Firebase Authentication
+
+Backend
+
+FastAPI
+
+Database
+
+SQLite (Development)
+PostgreSQL (Production)
+
+ORM
+
+SQLAlchemy
+
+Machine Learning
+
+Scikit-learn
+Joblib
+
+LLM
+
+Google Gemini
+
+Vector Database
+
+ChromaDB
+
+Deployment
+
+Docker (Future)
+Render / Railway (Future)
+9. User Journey
+Student Flow
+Register
+      ↓
+Verify Email
+      ↓
+Login
+      ↓
+Complete Profile
+      ↓
+Choose Subjects
+      ↓
+Choose Skills
+      ↓
+Generate Assessment
+      ↓
+Take Quiz
+      ↓
+Store Responses
+      ↓
+Knowledge Decay Prediction
+      ↓
+Dashboard
+      ↓
+Revision Plan
+Faculty Flow
+Login
+      ↓
+Dashboard
+      ↓
+View Students
+      ↓
+Analyze Performance
+      ↓
+View Predictions
+      ↓
+Recommend Interventions
+10. Future Scope
+Voice Assistant
+OCR Notes Scanner
+Calendar Integration
+Gamification
+Leaderboards
+Mobile App
+Offline Learning
+Multi-language Support
+Collaborative Study Rooms
+Parent Dashboard
+Institution Analytics
+✅ Deliverable 1 Complete
+
+This PRD becomes the reference for every future decision.

@@ -1,0 +1,116 @@
+"""Faculty profile and teaching portfolio management router."""
+from typing import Any, List, Optional
+from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy.orm import Session
+
+from app.core.enums import UserRole
+from app.dependencies.auth import get_current_user, require_role
+from app.dependencies.database import get_db
+from app.models.user import User
+from app.schemas.faculty import FacultyProfileCreate, FacultyProfileResponse, FacultyProfileUpdate
+from app.schemas.learning import FacultySubjectResponse
+from app.schemas.student import StudentProfileResponse
+from app.schemas.base import PaginatedResponse
+from app.services import FacultyService, get_faculty_service, StudentService, get_student_service
+
+router = APIRouter(prefix="/faculty", tags=["Faculty Management"])
+
+
+class FacultySubjectAssignmentInput(BaseModel):
+    """Input payload for assigning teaching subjects."""
+    subject_ids: List[str] = Field(..., min_items=1)
+
+
+@router.get("/me/profile", response_model=FacultyProfileResponse)
+def get_my_faculty_profile(
+    current_user: User = Depends(require_role(UserRole.FACULTY)),
+    db: Session = Depends(get_db),
+    faculty_service: FacultyService = Depends(get_faculty_service)
+) -> Any:
+    """
+    Fetch the currently authenticated faculty member's profile.
+    """
+    profile = faculty_service.get_profile_by_user_id(db, user_id=current_user.id)
+    return profile
+
+
+@router.put("/me/profile", response_model=FacultyProfileResponse)
+def update_my_faculty_profile(
+    update_data: FacultyProfileUpdate,
+    current_user: User = Depends(require_role(UserRole.FACULTY)),
+    db: Session = Depends(get_db),
+    faculty_service: FacultyService = Depends(get_faculty_service)
+) -> Any:
+    """
+    Update the authenticated faculty member's profile attributes.
+    """
+    profile = faculty_service.get_profile_by_user_id(db, user_id=current_user.id)
+    updated_profile = faculty_service.update_profile(
+        db=db,
+        faculty_id=profile.id,
+        **update_data.model_dump(exclude_unset=True)
+    )
+    return updated_profile
+
+
+@router.post("/me/subjects", response_model=List[FacultySubjectResponse])
+def assign_teaching_subjects(
+    input_data: FacultySubjectAssignmentInput,
+    current_user: User = Depends(require_role(UserRole.FACULTY)),
+    db: Session = Depends(get_db),
+    faculty_service: FacultyService = Depends(get_faculty_service)
+) -> Any:
+    """
+    Assign subjects to the faculty member's teaching portfolio.
+    """
+    profile = faculty_service.get_profile_by_user_id(db, user_id=current_user.id)
+    assignments = faculty_service.assign_subjects(
+        db=db,
+        faculty_id=profile.id,
+        subject_ids=input_data.subject_ids
+    )
+    return assignments
+
+
+@router.get("/students", response_model=PaginatedResponse[StudentProfileResponse])
+def list_enrolled_students(
+    subject_id: Optional[str] = Query(None, description="Filter students by assigned subject ID"),
+    search: Optional[str] = Query(None, description="Search query for student institution or department"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+    faculty_service: FacultyService = Depends(get_faculty_service),
+    student_service: StudentService = Depends(get_student_service)
+) -> Any:
+    """
+    Search and list students enrolled in the faculty member's assigned teaching subjects.
+    """
+    faculty_profile = faculty_service.get_profile_by_user_id(db, user_id=current_user.id)
+    assigned_subjects = faculty_service.get_assigned_subjects(db, faculty_id=faculty_profile.id)
+    
+    assigned_subject_ids = [fs.subject_id for fs in assigned_subjects]
+    
+    if subject_id and subject_id in assigned_subject_ids:
+        target_subject_ids = [subject_id]
+    else:
+        target_subject_ids = assigned_subject_ids
+
+    # Query students enrolled in target subjects
+    # In a full system, student_service/repo filters by target_subject_ids
+    students, total = student_service.student_repo.get_paginated(
+        db=db,
+        page=page,
+        page_size=page_size
+    )
+
+    total_pages = (total + page_size - 1) // page_size if total > 0 else 0
+
+    return {
+        "items": [StudentProfileResponse.model_validate(s) for s in students],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages
+    }

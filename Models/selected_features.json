@@ -1,0 +1,8 @@
+[
+    "interaction_order",
+    "past_attempts",
+    "past_correct",
+    "past_accuracy",
+    "rolling_accuracy",
+    "mastered"
+]
