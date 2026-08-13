@@ -1,10 +1,58 @@
 import { useQuery } from '@tanstack/react-query';
-import { dashboardApi, type DashboardData } from '../../../api/dashboardApi';
+import {
+  fetchProfileSummary,
+  fetchDashboardSummary,
+  fetchKnowledgeHealth,
+  fetchRevisionQueue,
+  fetchWeakSkills,
+  fetchRecentActivities,
+  RevisionQueueQueryParams,
+} from '../api/dashboardApi';
 
-export function useDashboard() {
-  return useQuery<DashboardData, Error>({
-    queryKey: ['dashboardData'],
-    queryFn: dashboardApi.getDashboardData,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+export const useProfileSummary = () => {
+  return useQuery({
+    queryKey: ['dashboard', 'profile-summary'],
+    queryFn: fetchProfileSummary,
+    staleTime: 5 * 60 * 1000,
   });
-}
+};
+
+export const useDashboardSummary = () => {
+  return useQuery({
+    queryKey: ['dashboard', 'summary'],
+    queryFn: fetchDashboardSummary,
+    staleTime: 60 * 1000,
+  });
+};
+
+export const useKnowledgeHealth = () => {
+  return useQuery({
+    queryKey: ['dashboard', 'knowledge-health'],
+    queryFn: fetchKnowledgeHealth,
+    staleTime: 2 * 60 * 1000,
+  });
+};
+
+export const useRevisionQueue = (params: RevisionQueueQueryParams = {}) => {
+  return useQuery({
+    queryKey: ['dashboard', 'revision-queue', params],
+    queryFn: () => fetchRevisionQueue(params),
+    staleTime: 30 * 1000,
+  });
+};
+
+export const useWeakSkills = (limit: number = 5) => {
+  return useQuery({
+    queryKey: ['dashboard', 'weak-skills', limit],
+    queryFn: () => fetchWeakSkills(limit),
+    staleTime: 2 * 60 * 1000,
+  });
+};
+
+export const useRecentActivities = (limit: number = 10) => {
+  return useQuery({
+    queryKey: ['dashboard', 'recent-activities', limit],
+    queryFn: () => fetchRecentActivities(limit),
+    staleTime: 60 * 1000,
+  });
+};

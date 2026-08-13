@@ -37,6 +37,7 @@ import { FacultyReports } from './pages/faculty/FacultyReports';
 
 // Admin Pages
 import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { UserRole } from './types';
 
 // Routes
 import { ProtectedRoute } from './app/routes/ProtectedRoute';
@@ -74,7 +75,7 @@ function App() {
         </Route>
 
         {/* Faculty Protected Routes */}
-        <Route element={<ProtectedRoute allowedRoles={['teacher', 'admin']} />}>
+        <Route element={<ProtectedRoute allowedRoles={[UserRole.FACULTY, UserRole.SUPER_ADMIN]} />}>
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<FacultyDashboard />} />
             <Route path="/prediction" element={<div className="p-8 text-center text-gray-500">Prediction — Coming in Phase 7</div>} />
@@ -87,7 +88,7 @@ function App() {
         </Route>
 
         {/* Admin Protected Routes */}
-        <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+        <Route element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]} />}>
           <Route element={<AppLayout />}>
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
           </Route>

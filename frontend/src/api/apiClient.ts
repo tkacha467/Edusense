@@ -26,7 +26,7 @@ const apiClient = axios.create({
 // Request interceptor adding Authorization Bearer token from localStorage
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('edu_auth_token') || localStorage.getItem('token');
-  if (token) {
+  if (token && !config.headers.Authorization) {
     config.headers.Authorization = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
   }
   return config;
@@ -39,7 +39,7 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response ? error.response.status : 500;
-    const message = error.response?.data?.detail || error.message || 'An unexpected error occurred';
+    const message = error.response?.data?.error?.message || error.response?.data?.detail || error.message || 'An unexpected error occurred';
     return Promise.reject(new ApiError(message, status, error.response?.data));
   }
 );

@@ -1,10 +1,17 @@
-export type Role = 'student' | 'teacher' | 'admin';
+export const UserRole = {
+  STUDENT: 'student',
+  FACULTY: 'faculty',
+  ADMIN: 'admin',
+  SUPER_ADMIN: 'super_admin'
+} as const;
+
+export type UserRoleType = typeof UserRole[keyof typeof UserRole];
 
 export interface User {
   id: string;
   email: string;
   fullName: string;
-  role: Role;
+  role: UserRoleType;
   avatarUrl?: string;
   bio?: string;
   createdAt: string;
@@ -43,7 +50,7 @@ export interface StudentProfile extends User {
 }
 
 export interface TeacherProfile extends User {
-  role: 'teacher';
+  role: typeof UserRole.FACULTY;
   department: string;
   employeeId: string;
 }

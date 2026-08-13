@@ -11,6 +11,10 @@ interface FacultyRequest {
   status: string;
   submitted_at: string;
   request_number: number;
+  user?: {
+    email: string;
+    display_name: string;
+  };
 }
 
 export const AdminDashboard: React.FC = () => {
@@ -73,7 +77,8 @@ export const AdminDashboard: React.FC = () => {
             <table className="w-full text-sm text-left">
               <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 rounded-tl-lg">User ID</th>
+                  <th className="px-4 py-3 rounded-tl-lg">Faculty Name</th>
+                  <th className="px-4 py-3">Email</th>
                   <th className="px-4 py-3">Institution</th>
                   <th className="px-4 py-3">Department</th>
                   <th className="px-4 py-3">Submitted</th>
@@ -83,7 +88,8 @@ export const AdminDashboard: React.FC = () => {
               <tbody className="divide-y divide-gray-100">
                 {requests.map((req) => (
                   <tr key={req.id} className="hover:bg-gray-50/50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{req.user_id}</td>
+                    <td className="px-4 py-3 font-medium text-gray-900">{req.user?.display_name || req.user_id}</td>
+                    <td className="px-4 py-3 text-gray-600">{req.user?.email || '-'}</td>
                     <td className="px-4 py-3 text-gray-600">{req.institution_id || '-'}</td>
                     <td className="px-4 py-3 text-gray-600">{req.department_id || '-'}</td>
                     <td className="px-4 py-3 text-gray-600">{new Date(req.submitted_at).toLocaleDateString()}</td>

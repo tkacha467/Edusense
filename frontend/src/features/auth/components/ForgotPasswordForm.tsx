@@ -4,6 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link } from 'react-router-dom';
 import { Loader2, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { UserRole } from '../../../types';
+import type { UserRoleType } from '../../../types';
 import { Form, FormField } from '../../../components/ui/Form';
 import { Button } from '../../../components/ui/Button';
 import { RoleHeader } from './RoleHeader';
@@ -14,7 +16,7 @@ const forgotPasswordSchema = z.object({
 });
 
 interface ForgotPasswordFormProps {
-  role: 'student' | 'faculty' | 'teacher';
+  role: UserRoleType;
   email: string;
   loading: boolean;
   isSubmitted: boolean;
@@ -69,7 +71,7 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = React.memo(
           <RoleHeader 
             title="Forgot Password?" 
             subtitle={isStudent ? "Enter your email address and we'll send you a link to reset your password." : "Enter your faculty email and we'll send you a password reset link."} 
-            role={isStudent ? 'student' : 'teacher'}
+            role={isStudent ? UserRole.STUDENT : UserRole.FACULTY}
           />
 
           <Form {...form}>

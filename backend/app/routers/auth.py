@@ -1,6 +1,6 @@
 """Authentication endpoints router."""
 from typing import Any, Dict
-from fastapi import APIRouter, Depends, status, Header
+from fastapi import APIRouter, Depends, status, Header, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import UnauthorizedException
@@ -10,6 +10,7 @@ from app.dependencies.database import get_db
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse
 from app.services import UserService, get_user_service
+from app.core.enums import UserStatus
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -58,6 +59,13 @@ def record_login(
     """
     Record user login activity and return authenticated user session context.
     """
+    if current_user.status == UserStatus.PENDING:
+        raise HTTPException(status_code=403, detail="Your account is awaiting administrator approval.")
+    if current_user.status == UserStatus.REJECTED:
+        raise HTTPException(status_code=403, detail="Your request was rejected. Contact administrator.")
+    if not current_user.is_active:
+        raise HTTPException(status_code=403, detail="Your account is inactive.")
+
     user = user_service.record_login(db, user_id=current_user.id)
     
     profile_id = None

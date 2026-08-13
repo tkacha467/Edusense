@@ -54,7 +54,7 @@ class UserService:
             "display_name": display_name,
             "role": role,
             "avatar_url": avatar_url,
-            "is_active": True,
+            "is_active": not is_faculty,
             "status": UserStatus.PENDING if is_faculty else UserStatus.ACTIVE,
         }
         user = self.user_repo.create(db, obj_in=user_data)

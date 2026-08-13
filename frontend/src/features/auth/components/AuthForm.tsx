@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import type { UserRoleType } from '../../../types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,7 +13,7 @@ import { PasswordInput } from './PasswordInput';
 
 interface AuthFormProps {
   mode: 'login' | 'signup';
-  role: 'student' | 'faculty' | 'teacher';
+  role: UserRoleType;
   loading: boolean;
   onSubmit: (values: any) => Promise<void>;
   onChange?: (values: any) => void;

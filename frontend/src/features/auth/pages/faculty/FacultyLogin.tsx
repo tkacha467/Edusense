@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { UserRole } from '../../../../types';
 import { AuthLayout } from '../../components/AuthLayout';
 import { RoleHeader } from '../../components/RoleHeader';
 import { AuthForm } from '../../components/AuthForm';
@@ -25,7 +26,7 @@ export const FacultyLogin: React.FC = () => {
         values.email || '', 
         values.password || '', 
         values.rememberMe ?? false, 
-        'teacher'
+        UserRole.FACULTY
       );
       showToast('Welcome back to the Faculty Portal!', 'success');
       navigate('/dashboard');
@@ -39,18 +40,18 @@ export const FacultyLogin: React.FC = () => {
 
   return (
     <AuthLayout
-      role="teacher"
+      role={UserRole.FACULTY}
       heading="Monitor Learning. Guide Success."
       subheading="Access advanced analytics, predict knowledge decay, and empower your students to achieve their best."
     >
       <RoleHeader 
         title="Welcome back, Faculty" 
         subtitle="Sign in to access your dashboard and analytics." 
-        role="teacher"
+        role={UserRole.FACULTY}
       />
       <AuthForm
         mode="login"
-        role="teacher"
+        role={UserRole.FACULTY}
         loading={isLoading}
         onSubmit={onSubmit}
       />

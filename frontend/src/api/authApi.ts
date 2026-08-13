@@ -1,7 +1,8 @@
 import apiClient, { ApiError } from './apiClient';
-import type { AuthSession, User } from '../types';
+import type { AuthSession, User, UserRoleType } from '../types';
+import { UserRole } from '../types';
 
-export const login = async (email: string, password: string, expectedRole?: 'student' | 'teacher'): Promise<AuthSession> => {
+export const login = async (email: string, password: string, expectedRole?: UserRoleType): Promise<AuthSession> => {
   try {
     // Generate dev token for user login sync
     const devToken = `dev-token-uid_${email.replace(/[^a-zA-Z0-9]/g, '_')}`;
@@ -12,9 +13,9 @@ export const login = async (email: string, password: string, expectedRole?: 'stu
     });
 
     const data = response.data;
-    const userRole = data.user.role;
-    if (expectedRole && userRole !== expectedRole) {
-      throw new ApiError(`Please use the ${userRole} login portal.`, 403);
+    const userRole = data.user.role; // This will be 'faculty' or 'student'
+    if (expectedRole && userRole !== expectedRole && !(expectedRole === UserRole.FACULTY && (userRole === UserRole.ADMIN || userRole === UserRole.SUPER_ADMIN))) {
+      throw new ApiError(`Please use the ${userRole === UserRole.FACULTY ? 'teacher' : userRole} login portal.`, 403);
     }
 
     const session: AuthSession = {
@@ -23,7 +24,7 @@ export const login = async (email: string, password: string, expectedRole?: 'stu
         id: data.user.id,
         email: data.user.email,
         fullName: data.user.display_name || data.user.email.split('@')[0],
-        role: data.user.role === 'student' ? 'student' : 'teacher',
+        role: data.user.role === UserRole.STUDENT ? UserRole.STUDENT : UserRole.FACULTY,
         createdAt: data.user.created_at,
         onboardingCompleted: data.onboarding_completed
       },
@@ -35,7 +36,8 @@ export const login = async (email: string, password: string, expectedRole?: 'stu
     return session;
   } catch (err: any) {
     if (err instanceof ApiError) throw err;
-    throw new ApiError(err.message || 'Login failed', 401);
+    const message = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Login failed';
+    throw new ApiError(message, err?.response?.status || 401);
   }
 };
 
@@ -44,7 +46,7 @@ export interface RegisterUserData {
   fullName?: string;
   name?: string;
   password?: string;
-  role?: 'student' | 'teacher' | 'admin' | 'faculty';
+  role?: UserRoleType;
   department?: string;
   institution_id?: string;
   department_id?: string;
@@ -59,7 +61,7 @@ export const register = async (userData: RegisterUserData): Promise<User> => {
       firebase_uid: uid,
       email: userData.email,
       display_name: userData.fullName || userData.name || userData.email.split('@')[0],
-      role: userData.role || 'student',
+      role: userData.role || UserRole.STUDENT,
       institution_id: userData.institution_id,
       department_id: userData.department_id
     }, {
@@ -71,7 +73,7 @@ export const register = async (userData: RegisterUserData): Promise<User> => {
       id: data.id,
       email: data.email,
       fullName: data.display_name || data.email.split('@')[0],
-      role: data.role === 'student' ? 'student' : 'teacher',
+      role: data.role === UserRole.STUDENT ? UserRole.STUDENT : UserRole.FACULTY,
       createdAt: data.created_at,
       onboardingCompleted: false
     };
@@ -81,7 +83,8 @@ export const register = async (userData: RegisterUserData): Promise<User> => {
     return user;
   } catch (err: any) {
     if (err instanceof ApiError) throw err;
-    throw new ApiError(err.message || 'Registration failed', 400);
+    const message = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Registration failed';
+    throw new ApiError(message, err?.response?.status || 400);
   }
 };
 
@@ -107,7 +110,7 @@ export const updateProfile = async (userId: string, updates: Partial<User>): Pro
   const user = stored ? JSON.parse(stored) : { id: userId, email: '', name: '', role: 'student' };
   
   // Choose endpoint based on role (student or teacher)
-  const endpoint = user.role === 'teacher' ? '/faculty/me/profile' : '/students/me/profile';
+  const endpoint = user.role === UserRole.FACULTY ? '/faculty/me/profile' : '/students/me/profile';
   
   try {
     // Note: Profile update endpoints usually take profile-specific fields. 
@@ -115,7 +118,8 @@ export const updateProfile = async (userId: string, updates: Partial<User>): Pro
     await apiClient.put(endpoint, updates);
   } catch (err: any) {
     if (err instanceof ApiError) throw err;
-    throw new ApiError(err.message || 'Profile update failed', 400);
+    const message = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Profile update failed';
+    throw new ApiError(message, err?.response?.status || 400);
   }
   
   const updated = { ...user, ...updates };

@@ -1,0 +1,44 @@
+===== LOGIN DEBUG =====
+Authorization: Bearer dev-token-uid_tushar_kacha141862_marwadiuniversity_ac_in
+Decoded token: {'uid': 'uid_tushar_kacha141862_marwadiuniversity_ac_in', 'email': 'uid_tushar_kacha141862_marwadiuniversity_ac_in@edusense.ai', 'name': 'Dev User uid_tushar_kacha141862_marwadiuniversity_ac_in', 'email_verified': True, 'is_dev': True}
+Firebase UID extracted: uid_tushar_kacha141862_marwadiuniversity_ac_in
+Database lookup result: None
+Database URL: sqlite:///./edusense.db
+=======================
+===== LOGIN DEBUG =====
+Authorization: Bearer dev-token-uid_kachatushar108_gmail_com
+Decoded token: {'uid': 'uid_kachatushar108_gmail_com', 'email': 'uid_kachatushar108_gmail_com@edusense.ai', 'name': 'Dev User uid_kachatushar108_gmail_com', 'email_verified': True, 'is_dev': True}
+Firebase UID extracted: uid_kachatushar108_gmail_com
+Database lookup result: <User(id=55ed4b83-0029-45bc-8ff9-ac0dc5ac34be, email='kachatushar108@gmail.com', role='UserRole.STUDENT')>
+User email: kachatushar108@gmail.com, status: UserStatus.ACTIVE
+Database URL: sqlite:///./edusense.db
+=======================
+===== LOGIN DEBUG =====
+Authorization: Bearer dev-token-uid_kachatushar108_gmail_com
+Decoded token: {'uid': 'uid_kachatushar108_gmail_com', 'email': 'uid_kachatushar108_gmail_com@edusense.ai', 'name': 'Dev User uid_kachatushar108_gmail_com', 'email_verified': True, 'is_dev': True}
+Firebase UID extracted: uid_kachatushar108_gmail_com
+Database lookup result: <User(id=55ed4b83-0029-45bc-8ff9-ac0dc5ac34be, email='kachatushar108@gmail.com', role='UserRole.STUDENT')>
+User email: kachatushar108@gmail.com, status: UserStatus.ACTIVE
+Database URL: sqlite:///./edusense.db
+=======================
+===== LOGIN DEBUG =====
+Authorization: Bearer dev-token-uid_kachatushar108_gmail_com
+Decoded token: {'uid': 'uid_kachatushar108_gmail_com', 'email': 'uid_kachatushar108_gmail_com@edusense.ai', 'name': 'Dev User uid_kachatushar108_gmail_com', 'email_verified': True, 'is_dev': True}
+Firebase UID extracted: uid_kachatushar108_gmail_com
+Database lookup result: <User(id=55ed4b83-0029-45bc-8ff9-ac0dc5ac34be, email='kachatushar108@gmail.com', role='UserRole.STUDENT')>
+User email: kachatushar108@gmail.com, status: UserStatus.ACTIVE
+Database URL: sqlite:///./edusense.db
+=======================
+===== LOGIN DEBUG =====
+Authorization: Bearer dev-token-uid_tushar_kacha141862_marwadiuniversity_ac_in
+Decoded token: {'uid': 'uid_tushar_kacha141862_marwadiuniversity_ac_in', 'email': 'uid_tushar_kacha141862_marwadiuniversity_ac_in@edusense.ai', 'name': 'Dev User uid_tushar_kacha141862_marwadiuniversity_ac_in', 'email_verified': True, 'is_dev': True}
+Firebase UID extracted: uid_tushar_kacha141862_marwadiuniversity_ac_in
+Database lookup result: None
+Database URL: sqlite:///./edusense.db
+=======================
+===== REGISTER DEBUG =====
+Authorization: Bearer dev-token-uid_tushar_kacha141862_marwadiuniversity_ac_in
+Payload email: tushar.kacha141862@marwadiuniversity.ac.in
+Payload role: UserRole.FACULTY
+Firebase UID extracted: uid_tushar_kacha141862_marwadiuniversity_ac_in
+==========================

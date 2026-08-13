@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { User, AuthSession } from '../types';
+import type { User, AuthSession, UserRoleType } from '../types';
 import { 
   login as apiLogin, 
   register as apiRegister,
@@ -17,7 +17,7 @@ interface AuthContextType {
   role: string | null;
   isAuthenticated: boolean;
   loading: boolean;
-  login: (email: string, pass: string, rememberMe: boolean, expectedRole?: 'student' | 'teacher') => Promise<void>;
+  login: (email: string, pass: string, rememberMe: boolean, expectedRole?: UserRoleType) => Promise<void>;
   register: (userData: any) => Promise<void>;
   logout: () => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
@@ -70,7 +70,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     restoreSession();
   }, []);
 
-  const login = async (email: string, pass: string, rememberMe: boolean, expectedRole?: 'student' | 'teacher') => {
+  const login = async (email: string, pass: string, rememberMe: boolean, expectedRole?: UserRoleType) => {
     const session = await apiLogin(email, pass, expectedRole);
     
     // Clear any old sessions

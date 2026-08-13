@@ -1,7 +1,8 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, BrainCircuit, Activity, FileText, User, Settings, Sparkles } from 'lucide-react';
+import { LayoutDashboard, BrainCircuit, Activity, FileText, User, Settings, Sparkles, Shield } from 'lucide-react';
 import { cn } from '../utils/cn';
+import { useAuth } from '../contexts/AuthContext';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -17,6 +18,12 @@ const secondaryNavigation = [
 ];
 
 export function Sidebar() {
+  const { role } = useAuth();
+
+  const menuItems = [...navigation];
+  if (role === 'admin' || role === 'super_admin') {
+    menuItems.push({ name: 'Admin Panel', href: '/admin/dashboard', icon: Shield });
+  }
   return (
     <div className="flex h-full w-64 flex-col border-r bg-white">
       <div className="flex h-16 items-center gap-2 px-6 border-b">
@@ -32,7 +39,7 @@ export function Sidebar() {
             Main Menu
           </h3>
           <nav className="flex flex-col gap-1">
-            {navigation.map((item) => (
+            {menuItems.map((item) => (
               <NavLink
                 key={item.name}
                 to={item.href}

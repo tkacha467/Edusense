@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthLayout } from '../../components/AuthLayout';
+import { UserRole } from '../../../../types';
 import { ForgotPasswordForm } from '../../components/ForgotPasswordForm';
 
 export const FacultyForgotPassword: React.FC = () => {
@@ -28,12 +29,12 @@ export const FacultyForgotPassword: React.FC = () => {
 
   return (
     <AuthLayout
-      role="teacher"
+      role={UserRole.FACULTY}
       heading="Reset Faculty Password"
       subheading="Regain access to your dashboard and continue guiding your students."
     >
       <ForgotPasswordForm
-        role="teacher"
+        role={UserRole.FACULTY}
         email={emailValue}
         loading={isLoading}
         isSubmitted={isSubmitted}

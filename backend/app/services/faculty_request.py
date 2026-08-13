@@ -9,6 +9,8 @@ from app.repositories.faculty_request import FacultyRequestRepository
 from app.core.enums import FacultyRequestStatus
 from app.core.events import EventDispatcher
 from app.schemas.faculty_request import FacultyRequestCreate, FacultyRequestReview
+from app.services.user import UserService
+from app.core.enums import UserStatus
 
 class FacultyRequestService:
     """Service for managing faculty requests and approval workflow."""
@@ -91,6 +93,10 @@ class FacultyRequestService:
         
         updated_request = repo.update(request)
         
+        # Update user status
+        user_service = UserService()
+        user_service.update_user(db, request.user_id, status=UserStatus.ACTIVE, is_active=True)
+        
         # Fire Domain Event
         EventDispatcher.dispatch("FacultyApproved", db, request.id, reviewer_id)
         
@@ -117,6 +123,10 @@ class FacultyRequestService:
         request.rejection_reason = review_data.rejection_reason
         
         updated_request = repo.update(request)
+        
+        # Update user status
+        user_service = UserService()
+        user_service.update_user(db, request.user_id, status=UserStatus.REJECTED)
         
         # Fire Domain Event
         EventDispatcher.dispatch("FacultyRejected", db, request.id, reviewer_id, review_data.rejection_reason)

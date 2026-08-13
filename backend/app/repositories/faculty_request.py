@@ -1,7 +1,7 @@
 """Faculty Request repository."""
 from typing import Optional, List
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.faculty_request import FacultyRequest
 from app.core.enums import FacultyRequestStatus
@@ -22,11 +22,11 @@ class FacultyRequestRepository:
 
     def get_pending_requests(self) -> List[FacultyRequest]:
         """Get all pending faculty requests."""
-        return self.db.query(FacultyRequest).filter(FacultyRequest.status == FacultyRequestStatus.PENDING).order_by(FacultyRequest.created_at.asc()).all()
+        return self.db.query(FacultyRequest).options(joinedload(FacultyRequest.user)).filter(FacultyRequest.status == FacultyRequestStatus.PENDING).order_by(FacultyRequest.created_at.asc()).all()
     
     def get_all(self, limit: int = 100, offset: int = 0) -> List[FacultyRequest]:
         """Get all faculty requests with pagination."""
-        return self.db.query(FacultyRequest).order_by(FacultyRequest.created_at.desc()).offset(offset).limit(limit).all()
+        return self.db.query(FacultyRequest).options(joinedload(FacultyRequest.user)).order_by(FacultyRequest.created_at.desc()).offset(offset).limit(limit).all()
 
     def create(self, request: FacultyRequest) -> FacultyRequest:
         """Create a new faculty request."""

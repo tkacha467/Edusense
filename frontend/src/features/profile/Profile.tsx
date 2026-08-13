@@ -1,4 +1,5 @@
 import { useAuth } from '../../contexts/AuthContext';
+import { UserRole } from '../../types';
 import React, { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -25,7 +26,7 @@ export function Profile() {
       firstName: firstName,
       lastName: lastName,
       email: currentUser?.email || '',
-      role: (currentUser?.role === 'teacher' ? 'Teacher' : 'Student') as any,
+      role: (currentUser?.role === UserRole.FACULTY ? 'Faculty' : 'Student') as any,
       bio: currentUser?.bio || '',
     },
   });
