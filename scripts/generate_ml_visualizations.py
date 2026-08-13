@@ -77,6 +77,19 @@ def generate_visualizations():
     plt.savefig("reports/figures/threshold_optimization.png", dpi=300, bbox_inches='tight')
     plt.close()
     
+    print("Generating Coefficient Plot...")
+    coefficients = model.coef_[0]
+    # Map features to coefficients and sort by magnitude
+    coef_df = pd.DataFrame({'Feature': features, 'Coefficient': coefficients})
+    coef_df = coef_df.reindex(coef_df.Coefficient.abs().sort_values(ascending=False).index)
+    
+    plt.figure(figsize=(8, 5))
+    sns.barplot(x='Coefficient', y='Feature', data=coef_df, palette='vlag')
+    plt.title('Logistic Regression Feature Coefficients')
+    plt.grid(True, alpha=0.3)
+    plt.savefig("reports/figures/coefficient_plot.png", dpi=300, bbox_inches='tight')
+    plt.close()
+
     print("Generating ROC and PR Curves...")
     fpr, tpr, _ = roc_curve(y_test, y_prob)
     from sklearn.metrics import auc
