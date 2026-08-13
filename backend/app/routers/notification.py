@@ -46,9 +46,7 @@ def mark_notification_read(
     notif_service: NotificationService = Depends(get_notification_service)
 ) -> Any:
     """Mark a notification as read."""
-    notif = notif_service.mark_as_read(db, notification_id=notification_id)
-    if notif.user_id != current_user.id:
-        raise HTTPException(status_code=404, detail="Notification not found")
+    notif = notif_service.mark_as_read(db, notification_id=notification_id, user_id=current_user.id)
     db.commit()
     return notif
 

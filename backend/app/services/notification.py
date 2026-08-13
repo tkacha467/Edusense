@@ -96,23 +96,28 @@ class NotificationService:
         """
         return self.notification_repo.get_unread_count(db, user_id=user_id)
 
-    def mark_as_read(self, db: Session, notification_id: str) -> Notification:
+    def mark_as_read(self, db: Session, notification_id: str, user_id: str) -> Notification:
         """
         Mark a specific notification as read.
 
         Args:
             db (Session): Database session.
             notification_id (str): Notification ID.
+            user_id (str): ID of the requesting user.
 
         Returns:
             Notification: The updated notification.
             
         Raises:
             NotFoundException: If not found.
+            ForbiddenException: If not owned by user.
         """
         notification = self.notification_repo.get_by_id(db, entity_id=notification_id)
         if not notification:
             raise NotFoundException(f"Notification '{notification_id}' not found.")
+        if notification.user_id != user_id:
+            from app.core.exceptions import ForbiddenException
+            raise ForbiddenException("Notification does not belong to this user.")
         return self.notification_repo.update(db, db_obj=notification, obj_in={"is_read": True})
 
     def mark_all_as_read(self, db: Session, user_id: str) -> int:

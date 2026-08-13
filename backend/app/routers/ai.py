@@ -19,7 +19,8 @@ from app.services.adaptive.decision_engine import RecommendationDecisionEngine
 
 router = APIRouter(prefix="/ai", tags=["AI Platform Engine"])
 
-_global_orchestrator = AIOrchestrator()
+def get_orchestrator() -> AIOrchestrator:
+    return AIOrchestrator()
 
 
 # Pydantic Schemas for AI Endpoints
@@ -55,21 +56,26 @@ class RecommendationTextInput(BaseModel):
 
 
 @router.post("/chat")
-def chat_with_ai_assistant(
+async def chat_with_ai_assistant(
     input_data: ChatQueryInput,
     student_profile: StudentProfile = Depends(require_onboarding_completed),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    orchestrator: AIOrchestrator = Depends(get_orchestrator)
 ) -> Any:
     """Grounded AI Study Assistant conversation endpoint."""
-    assistant = AIStudyAssistant(orchestrator=_global_orchestrator)
-    return assistant.answer_query(db, student_profile, input_data.query)
+    assistant = AIStudyAssistant(orchestrator=orchestrator, student_id=student_profile.id)
+    return await assistant.answer_query(db, student_profile, input_data.query)
 
 
 @router.post("/explain")
-def explain_concept(input_data: ExplainInput) -> Any:
+async def explain_concept(
+    input_data: ExplainInput,
+    student_profile: StudentProfile = Depends(require_onboarding_completed),
+    orchestrator: AIOrchestrator = Depends(get_orchestrator)
+) -> Any:
     """Grounded concept explanation with analogies and examples."""
-    engine = ExplanationEngine(orchestrator=_global_orchestrator)
-    return engine.explain_concept(
+    engine = ExplanationEngine(orchestrator=orchestrator)
+    return await engine.explain_concept(
         concept_name=input_data.concept_name,
         subject_name=input_data.subject_name or "Computer Science",
         difficulty=input_data.difficulty or "intermediate"
@@ -77,17 +83,25 @@ def explain_concept(input_data: ExplainInput) -> Any:
 
 
 @router.post("/summarize")
-def summarize_topic(input_data: SummarizeInput) -> Any:
+async def summarize_topic(
+    input_data: SummarizeInput,
+    student_profile: StudentProfile = Depends(require_onboarding_completed),
+    orchestrator: AIOrchestrator = Depends(get_orchestrator)
+) -> Any:
     """Grounded study notes summarizer."""
-    summarizer = StudyNotesSummarizer(orchestrator=_global_orchestrator)
-    return summarizer.generate_summary(topic_name=input_data.topic_name)
+    summarizer = StudyNotesSummarizer(orchestrator=orchestrator)
+    return await summarizer.generate_summary(topic_name=input_data.topic_name)
 
 
 @router.post("/flashcards")
-def generate_flashcards(input_data: FlashcardInput) -> Any:
+async def generate_flashcards(
+    input_data: FlashcardInput,
+    student_profile: StudentProfile = Depends(require_onboarding_completed),
+    orchestrator: AIOrchestrator = Depends(get_orchestrator)
+) -> Any:
     """Generates adaptive flashcards for spaced repetition."""
-    generator = FlashcardGenerator(orchestrator=_global_orchestrator)
-    return generator.generate_flashcards(
+    generator = FlashcardGenerator(orchestrator=orchestrator)
+    return await generator.generate_flashcards(
         skill_name=input_data.skill_name,
         difficulty=input_data.difficulty or "intermediate",
         count=input_data.count or 3
@@ -95,20 +109,28 @@ def generate_flashcards(input_data: FlashcardInput) -> Any:
 
 
 @router.post("/hints")
-def generate_hint(input_data: HintInput) -> Any:
+async def generate_hint(
+    input_data: HintInput,
+    student_profile: StudentProfile = Depends(require_onboarding_completed),
+    orchestrator: AIOrchestrator = Depends(get_orchestrator)
+) -> Any:
     """Generates progressive hints without spoiling correct answers."""
-    generator = HintGenerator(orchestrator=_global_orchestrator)
-    return generator.generate_hint(
+    generator = HintGenerator(orchestrator=orchestrator)
+    return await generator.generate_hint(
         question_text=input_data.question_text,
         skill_name=input_data.skill_name or "Target Skill"
     )
 
 
 @router.post("/questions")
-def generate_questions(input_data: QuestionGenInput) -> Any:
+async def generate_questions(
+    input_data: QuestionGenInput,
+    student_profile: StudentProfile = Depends(require_onboarding_completed),
+    orchestrator: AIOrchestrator = Depends(get_orchestrator)
+) -> Any:
     """Multi-format question generator (MCQ, True/False, Short Answer, Coding)."""
-    generator = AIQuestionGenerator(orchestrator=_global_orchestrator)
-    return generator.generate_questions(
+    generator = AIQuestionGenerator(orchestrator=orchestrator)
+    return await generator.generate_questions(
         topic_name=input_data.topic_name,
         subject_name=input_data.subject_name or "Computer Science",
         question_type=input_data.question_type or "mcq",
@@ -118,10 +140,11 @@ def generate_questions(input_data: QuestionGenInput) -> Any:
 
 
 @router.post("/recommendation-text")
-def generate_recommendation_text(
+async def generate_recommendation_text(
     input_data: RecommendationTextInput,
     student_profile: StudentProfile = Depends(require_onboarding_completed),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    orchestrator: AIOrchestrator = Depends(get_orchestrator)
 ) -> Any:
     """Enhances deterministic study recommendation into encouraging natural language."""
     from app.repositories import KnowledgeProfileRepository
@@ -131,20 +154,26 @@ def generate_recommendation_text(
         raise HTTPException(status_code=404, detail="Skill knowledge profile not found")
 
     decision_engine = RecommendationDecisionEngine()
-    writer = AIRecommendationWriter(orchestrator=_global_orchestrator)
+    writer = AIRecommendationWriter(orchestrator=orchestrator)
 
     decision = decision_engine.evaluate_skill_decision(db, student_profile, profile)
-    return writer.enhance_recommendation_text(decision)
+    return await writer.enhance_recommendation_text(decision)
 
 
 @router.get("/history")
-def get_ai_chat_history() -> Any:
+async def get_ai_chat_history(
+    student_profile: StudentProfile = Depends(require_onboarding_completed),
+    orchestrator: AIOrchestrator = Depends(get_orchestrator)
+) -> Any:
     """Returns conversation history."""
-    assistant = AIStudyAssistant(orchestrator=_global_orchestrator)
+    assistant = AIStudyAssistant(orchestrator=orchestrator, student_id=student_profile.id)
     return {"history": assistant.memory.get_recent_history()}
 
 
 @router.get("/usage")
-def get_ai_usage_stats() -> Any:
+async def get_ai_usage_stats(
+    current_user: User = Depends(get_current_user),
+    orchestrator: AIOrchestrator = Depends(get_orchestrator)
+) -> Any:
     """Returns AI Platform latency, usage, and observability statistics."""
-    return _global_orchestrator.get_usage_statistics()
+    return orchestrator.get_usage_statistics()

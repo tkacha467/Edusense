@@ -15,6 +15,8 @@ from app.models.recommendation import StudyPlan, StudyTask
 from app.models.notification import Notification
 from app.models.analytics import StudentActivity
 from app.models.audit import AuditLog
+from app.models.permission import Permission, RolePermission
+from app.models.faculty_request import FacultyRequest
 
 __all__ = [
     "User",
@@ -39,4 +41,7 @@ __all__ = [
     "Notification",
     "StudentActivity",
     "AuditLog",
+    "Permission",
+    "RolePermission",
+    "FacultyRequest",
 ]

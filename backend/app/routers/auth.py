@@ -1,6 +1,6 @@
 """Authentication endpoints router."""
 from typing import Any, Dict
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Header
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import UnauthorizedException
@@ -17,6 +17,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register_user(
     user_data: UserCreate,
+    authorization: str = Header(..., alias="Authorization"),
     db: Session = Depends(get_db),
     user_service: UserService = Depends(get_user_service)
 ) -> Any:
@@ -25,13 +26,25 @@ def register_user(
     Automatically instantiates a linked StudentProfile or FacultyProfile
     based on the assigned role.
     """
+    if not authorization.startswith("Bearer "):
+        raise UnauthorizedException("Invalid token scheme. Expected 'Bearer <token>'.")
+
+    id_token = authorization.split("Bearer ")[1].strip()
+    claims = verify_firebase_token(id_token)
+    firebase_uid = claims.get("uid")
+
+    if not firebase_uid:
+        raise UnauthorizedException("Invalid token claims: Missing UID.")
+
     user = user_service.register_user(
         db=db,
-        firebase_uid=user_data.firebase_uid,
+        firebase_uid=firebase_uid,
         email=user_data.email,
         display_name=user_data.display_name,
         role=user_data.role,
-        avatar_url=user_data.avatar_url
+        avatar_url=user_data.avatar_url,
+        institution_id=user_data.institution_id,
+        department_id=user_data.department_id
     )
     return user
 

@@ -10,6 +10,7 @@ interface FacultySignUpValues {
   fullName?: string;
   email?: string;
   department?: string;
+  institution_id?: string;
   password?: string;
 }
 
@@ -28,6 +29,7 @@ export const FacultySignUp: React.FC = () => {
         password: values.password || '',
         role: 'teacher',
         department: values.department || '',
+        institution_id: values.institution_id || '',
       });
       showToast('Account requested. An admin will review your access.', 'success');
       navigate('/faculty/login');

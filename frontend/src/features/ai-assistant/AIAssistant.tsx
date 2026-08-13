@@ -1,13 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Sparkles, BookOpen, Clock, BarChart } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { useAIChat } from './hooks/useAI';
+import { Loader2 } from 'lucide-react';
 
 export function AIAssistant() {
   const [messages, setMessages] = useState([
     { id: 1, role: 'assistant', text: "Hello! I'm your Smart Analytics Assistant. I can help generate revision plans, summarize complex student trends, or analyze engagement metrics. What do you need help with today?" }
   ]);
   const [input, setInput] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const chatMutation = useAIChat();
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const suggestions = [
     { icon: BookOpen, text: "Generate an intervention plan for Fraction Division" },
@@ -15,21 +28,27 @@ export function AIAssistant() {
     { icon: BarChart, text: "Summarize last week's engagement trends" }
   ];
 
-  const handleSend = (text: string) => {
-    if (!text.trim()) return;
+  const handleSend = async (text: string) => {
+    if (!text.trim() || chatMutation.isPending) return;
     
-    // Add user message
+    // Optimistic UI update
     setMessages(prev => [...prev, { id: Date.now(), role: 'user', text }]);
     setInput('');
     
-    // Mock AI response
-    setTimeout(() => {
+    try {
+      const response = await chatMutation.mutateAsync({ query: text });
       setMessages(prev => [...prev, { 
         id: Date.now(), 
         role: 'assistant', 
-        text: `Based on the latest learning data regarding "${text}", I have identified 5 students who could benefit from a targeted revision session over the next 3 days.`
+        text: response.answer
       }]);
-    }, 1000);
+    } catch (error) {
+      setMessages(prev => [...prev, { 
+        id: Date.now(), 
+        role: 'assistant', 
+        text: "I'm sorry, I encountered an error while processing your request. Please try again."
+      }]);
+    }
   };
 
   return (
@@ -77,6 +96,19 @@ export function AIAssistant() {
             </div>
           </div>
         )}
+        
+        {chatMutation.isPending && (
+          <div className="flex gap-4">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-secondary/10 text-secondary">
+              <Bot className="w-4 h-4" />
+            </div>
+            <div className="max-w-[80%] rounded-2xl px-4 py-3 text-sm bg-gray-100 text-gray-900 rounded-tl-sm flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
+              <span className="text-gray-500">Thinking...</span>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input Area */}
@@ -93,9 +125,9 @@ export function AIAssistant() {
             size="icon" 
             className="absolute right-2 rounded-full h-10 w-10"
             onClick={() => handleSend(input)}
-            disabled={!input.trim()}
+            disabled={!input.trim() || chatMutation.isPending}
           >
-            <Send className="w-4 h-4" />
+            {chatMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </Button>
         </div>
       </div>

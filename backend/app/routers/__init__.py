@@ -12,6 +12,7 @@ from app.routers.recommendation import router as recommendation_router
 from app.routers.notification import router as notification_router
 from app.routers.ai import router as ai_router
 from app.routers.rag import router as rag_router
+from app.routers.admin import router as admin_router
 
 __all__ = [
     "auth_router",
@@ -25,6 +26,7 @@ __all__ = [
     "notification_router",
     "ai_router",
     "rag_router",
+    "admin_router",
     "include_routers",
 ]
 
@@ -42,3 +44,4 @@ def include_routers(app: FastAPI, prefix: str = "/api/v1") -> None:
     app.include_router(notification_router, prefix=prefix)
     app.include_router(ai_router, prefix=prefix)
     app.include_router(rag_router, prefix=prefix)
+    app.include_router(admin_router, prefix=prefix)

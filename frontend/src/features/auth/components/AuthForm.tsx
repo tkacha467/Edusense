@@ -50,7 +50,10 @@ export const AuthForm: React.FC<AuthFormProps> = React.memo(({
     const signupSchema = z.object({
       fullName: z.string().min(2, 'Name must be at least 2 characters'),
       email: z.string().email('Please enter a valid email address'),
-      ...(role !== 'student' ? { department: z.string().min(2, 'Department is required') } : {}),
+      ...(role !== 'student' ? { 
+          department: z.string().min(2, 'Department is required'),
+          institution_id: z.string().min(2, 'Institution ID is required') 
+      } : {}),
       password: z.string().min(8, 'Password must be at least 8 characters'),
       confirmPassword: z.string().min(8, 'Confirm password must be at least 8 characters'),
     }).refine((data) => data.password === data.confirmPassword, {
@@ -70,6 +73,7 @@ export const AuthForm: React.FC<AuthFormProps> = React.memo(({
       fullName: '',
       email: '',
       department: '',
+      institution_id: '',
       password: '',
       confirmPassword: '',
     };
@@ -123,28 +127,52 @@ export const AuthForm: React.FC<AuthFormProps> = React.memo(({
         )}
 
         {isSignup && role !== 'student' && (
-          <FormField
-            control={form.control}
-            name="department"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Department</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Building className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                    <Input
-                      className="pl-10 h-12 bg-gray-50 border-gray-200 focus:bg-white text-base"
-                      placeholder="Computer Science"
-                      disabled={loading}
-                      aria-label="Department"
-                      {...field}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <>
+            <FormField
+              control={form.control}
+              name="institution_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Institution ID</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Building className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                      <Input
+                        className="pl-10 h-12 bg-gray-50 border-gray-200 focus:bg-white text-base"
+                        placeholder="EDU-12345"
+                        disabled={loading}
+                        aria-label="Institution ID"
+                        {...field}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="department"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Department</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Building className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                      <Input
+                        className="pl-10 h-12 bg-gray-50 border-gray-200 focus:bg-white text-base"
+                        placeholder="Computer Science"
+                        disabled={loading}
+                        aria-label="Department"
+                        {...field}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
         )}
 
         <FormField

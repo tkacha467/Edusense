@@ -9,7 +9,7 @@ class AIQuestionGenerator:
     def __init__(self, orchestrator: Optional[AIOrchestrator] = None) -> None:
         self.orchestrator = orchestrator or AIOrchestrator()
 
-    def generate_questions(
+    async def generate_questions(
         self,
         topic_name: str,
         subject_name: str = "Computer Science",
@@ -26,7 +26,7 @@ class AIQuestionGenerator:
             "count": count
         }
 
-        result = self.orchestrator.execute(
+        result = await self.orchestrator.execute(
             prompt_key="question_generator_v1",
             variables=variables,
             json_mode=True

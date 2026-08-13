@@ -12,7 +12,7 @@ from app.repositories import (
     StudentSubjectRepository,
 )
 from app.models import AssessmentSession, Question, QuestionOption, StudentResponse, StudentSkill
-from app.core.exceptions import NotFoundException, ValidationException
+from app.core.exceptions import NotFoundException, ValidationException, ForbiddenException
 from app.core.enums import AssessmentStatus
 
 
@@ -118,13 +118,14 @@ class AssessmentService:
                 
         return created_questions
 
-    def start_assessment(self, db: Session, session_id: str) -> AssessmentSession:
+    def start_assessment(self, db: Session, session_id: str, student_id: str) -> AssessmentSession:
         """
         Start an assessment by setting its status and started_at timestamp.
 
         Args:
             db (Session): Database session.
             session_id (str): ID of the assessment session.
+            student_id (str): ID of the requesting student.
 
         Returns:
             AssessmentSession: The updated session.
@@ -132,6 +133,8 @@ class AssessmentService:
         session = self.session_repo.get_by_id(db, session_id)
         if not session:
             raise NotFoundException(f"AssessmentSession '{session_id}' not found.")
+        if session.student_id != student_id:
+            raise ForbiddenException("Assessment session does not belong to this student.")
             
         update_data = {
             "status": AssessmentStatus.IN_PROGRESS,
@@ -142,19 +145,17 @@ class AssessmentService:
     def submit_assessment(self, db: Session, session_id: str, student_id: str, responses: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         Submit and evaluate an assessment.
-
-        Args:
-            db (Session): Database session.
-            session_id (str): ID of the assessment session.
-            student_id (str): ID of the student.
-            responses (List[Dict[str, Any]]): List of responses containing question_id, option_id, etc.
-
-        Returns:
-            Dict[str, Any]: Evaluation result containing total, correct, scored_marks, percentage.
+        Runs entirely within one transaction boundary via the injected Session.
+        Fixes N+1 query issues by bulk fetching QuestionOptions and bulk processing updates.
         """
+        from app.core.events import EventDispatcher
+
         session = self.session_repo.get_by_id(db, session_id)
         if not session:
             raise NotFoundException(f"AssessmentSession '{session_id}' not found.")
+            
+        if session.student_id != student_id:
+            raise ForbiddenException("Assessment session does not belong to this student.")
             
         if session.status != AssessmentStatus.IN_PROGRESS:
             raise ValidationException("Can only submit an assessment that is 'in_progress'.")
@@ -163,9 +164,24 @@ class AssessmentService:
         scored_marks = 0
         correct_count = 0
         
-        # We need all questions for the session to score
+        # 1. Bulk fetch all questions for the session
         questions = self.question_repo.get_multi_by_session(db, session_id=session_id)
         question_map = {str(q.id): q for q in questions}
+
+        # 2. Bulk fetch all submitted options
+        option_ids = []
+        for r in responses:
+            opt_id = r.get("selected_option_id") or r.get("option_id")
+            if opt_id:
+                option_ids.append(str(opt_id))
+                
+        # Bulk query QuestionOptions
+        options = self.option_repo.get_by_ids(db, option_ids)
+        option_map = {str(opt.id): opt for opt in options}
+        
+        # 3. Evaluate correctness and prepare bulk inserts/updates
+        responses_to_insert = []
+        skill_updates = {} # map skill_id -> (total_attempts_increment, correct_attempts_increment)
 
         for response_data in responses:
             question_id = response_data.get("question_id")
@@ -175,10 +191,10 @@ class AssessmentService:
             if not question:
                 continue
 
-            # Evaluate correctness
+            # Evaluate correctness using the pre-loaded option_map
             is_correct = False
             if selected_option_id:
-                option = self.option_repo.get_by_id(db, selected_option_id)
+                option = option_map.get(str(selected_option_id))
                 if option and option.is_correct:
                     is_correct = True
             
@@ -187,39 +203,67 @@ class AssessmentService:
                 scored_marks += question.marks
                 correct_count += 1
                 
-            # Create StudentResponse
-            resp_obj_in = {
-                "assessment_session_id": session_id,
-                "student_id": student_id,
-                "question_id": question_id,
-                "selected_option_id": selected_option_id,
-                "is_correct": is_correct,
-                "time_taken_seconds": response_data.get("time_taken_seconds", 0)
-            }
-            self.response_repo.create(db, obj_in=resp_obj_in)
+            # Prepare StudentResponse data
+            responses_to_insert.append(StudentResponse(
+                assessment_session_id=session_id,
+                student_id=student_id,
+                question_id=question_id,
+                selected_option_id=selected_option_id,
+                is_correct=is_correct,
+                time_taken_seconds=response_data.get("time_taken_seconds", 0)
+            ))
             
-            # Update StudentSkill if a skill_id is associated with the question
-            # (Assuming questions are linked to skills for granular tracking)
+            # Prepare StudentSkill update aggregation
             skill_id = getattr(question, 'skill_id', None)
             if skill_id:
-                self.student_skill_repo.update_proficiency(db, student_id=student_id, skill_id=skill_id, is_correct=is_correct)
+                skill_id_str = str(skill_id)
+                current_val = skill_updates.get(skill_id_str, (0, 0))
+                skill_updates[skill_id_str] = (
+                    current_val[0] + 1, 
+                    current_val[1] + (1 if is_correct else 0)
+                )
+
+        # 4. Bulk insert responses
+        if responses_to_insert:
+            db.add_all(responses_to_insert)
+            
+        # 5. Process StudentSkill updates (we iterate through aggregated skills instead of per-question)
+        for skill_id_str, (total_inc, correct_inc) in skill_updates.items():
+            # get or create the skill (since there may not be many unique skills per test, this is much faster)
+            student_skill = self.student_skill_repo.get_student_skill(db, student_id=student_id, skill_id=skill_id_str)
+            if not student_skill:
+                student_skill = StudentSkill(
+                    student_id=student_id, 
+                    skill_id=skill_id_str, 
+                    total_attempts=0, 
+                    correct_attempts=0, 
+                    proficiency_level=0.0
+                )
+                db.add(student_skill)
+                db.flush() # Need flush to ensure it has an ID/state for the update below
+                
+            student_skill.total_attempts += total_inc
+            student_skill.correct_attempts += correct_inc
+            student_skill.proficiency_level = student_skill.correct_attempts / student_skill.total_attempts
+            student_skill.last_practiced_at = datetime.now(timezone.utc)
 
         percentage = (scored_marks / total_marks * 100) if total_marks > 0 else 0.0
         
-        # Complete session
-        update_data = {
-            "status": AssessmentStatus.COMPLETED,
-            "completed_at": datetime.now(timezone.utc),
-            "score": scored_marks
-        }
-        self.session_repo.update(db, db_obj=session, obj_in=update_data)
+        # 6. Complete session
+        session.status = AssessmentStatus.COMPLETED
+        session.completed_at = datetime.now(timezone.utc)
+        session.score = scored_marks
         
+        # Note: the db session will be committed by the router dependency.
+        db.flush() 
+
         return {
             "total_questions": len(questions),
             "correct_answers": correct_count,
             "total_marks": total_marks,
             "scored_marks": scored_marks,
-            "percentage": percentage
+            "percentage": percentage,
+            "skill_updates": list(skill_updates.keys())
         }
 
     def get_assessment_history(self, db: Session, student_id: str, page: int = 1, page_size: int = 20) -> Tuple[List[AssessmentSession], int]:
@@ -238,13 +282,14 @@ class AssessmentService:
         skip = (page - 1) * page_size
         return self.session_repo.get_history_by_student(db, student_id=student_id, skip=skip, limit=page_size)
 
-    def get_assessment_detail(self, db: Session, session_id: str) -> AssessmentSession:
+    def get_assessment_detail(self, db: Session, session_id: str, student_id: str = None) -> AssessmentSession:
         """
         Retrieve a full assessment session including its questions and options.
 
         Args:
             db (Session): Database session.
             session_id (str): ID of the assessment session.
+            student_id (str, optional): ID of the requesting student for ownership validation.
 
         Returns:
             AssessmentSession: The assessment session with loaded relationships.
@@ -252,15 +297,18 @@ class AssessmentService:
         session = self.session_repo.get_with_questions(db, id=session_id)
         if not session:
             raise NotFoundException(f"AssessmentSession '{session_id}' not found.")
+        if student_id and session.student_id != student_id:
+            raise ForbiddenException("Assessment session does not belong to this student.")
         return session
 
-    def abandon_assessment(self, db: Session, session_id: str) -> AssessmentSession:
+    def abandon_assessment(self, db: Session, session_id: str, student_id: str) -> AssessmentSession:
         """
         Abandon an in-progress assessment.
 
         Args:
             db (Session): Database session.
             session_id (str): ID of the assessment session.
+            student_id (str): ID of the requesting student.
 
         Returns:
             AssessmentSession: The updated session.
@@ -268,6 +316,9 @@ class AssessmentService:
         session = self.session_repo.get_by_id(db, session_id)
         if not session:
             raise NotFoundException(f"AssessmentSession '{session_id}' not found.")
+            
+        if session.student_id != student_id:
+            raise ForbiddenException("Assessment session does not belong to this student.")
             
         return self.session_repo.update(
             db, 

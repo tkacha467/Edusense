@@ -26,7 +26,7 @@ def get_topic_service() -> TopicService: return TopicService()
 
 
 @router.post("/generate", response_model=AssessmentSessionResponse, status_code=status.HTTP_201_CREATED)
-def generate_assessment_session(
+async def generate_assessment_session(
     session_data: AssessmentSessionCreate,
     student_profile: StudentProfile = Depends(require_onboarding_completed),
     db: Session = Depends(get_db),
@@ -59,7 +59,7 @@ def generate_assessment_session(
     # 2. Invoke AI Question Generator
     ai_generator = AIQuestionGenerator()
     diff_val = session_data.difficulty_level.value if hasattr(session_data.difficulty_level, 'value') else str(session_data.difficulty_level)
-    generated_dtos = ai_generator.generate_questions(
+    generated_dtos = await ai_generator.generate_questions(
         subject_name=subject.name,
         topic_name=topic_name,
         difficulty=diff_val,
@@ -109,7 +109,7 @@ def start_assessment_session(
     """
     Transition assessment session state from PENDING to IN_PROGRESS and stamp started_at.
     """
-    session = assessment_service.start_assessment(db, session_id=session_id)
+    session = assessment_service.start_assessment(db, session_id=session_id, student_id=student_profile.id)
     return session
 
 
@@ -123,7 +123,7 @@ def get_assessment_questions(
     """
     Fetch questions for an active test session without revealing correct answers or explanations.
     """
-    session = assessment_service.get_assessment_detail(db, session_id=session_id)
+    session = assessment_service.get_assessment_detail(db, session_id=session_id, student_id=student_profile.id)
     
     public_questions = []
     for q in session.questions:
@@ -154,6 +154,7 @@ def get_assessment_questions(
 def submit_assessment_session(
     session_id: str,
     submission: AssessmentSubmission,
+    background_tasks: getattr(__import__("fastapi"), "BackgroundTasks"),
     student_profile: StudentProfile = Depends(require_onboarding_completed),
     db: Session = Depends(get_db),
     assessment_service: AssessmentService = Depends(get_assessment_service)
@@ -168,6 +169,21 @@ def submit_assessment_session(
         session_id=session_id,
         student_id=student_profile.id,
         responses=responses_payload
+    )
+
+    # Note: Event is dispatched in a BackgroundTask so it runs AFTER 
+    # the SQLAlchemy session commits the transaction at the end of the request.
+    from app.core.tasks import TaskDispatcher
+    from app.core.events import EventDispatcher
+    
+    dispatcher = TaskDispatcher(background_tasks)
+    dispatcher.dispatch(
+        EventDispatcher.publish,
+        "AssessmentCompleted",
+        db=db,
+        student_id=student_profile.id,
+        session_id=session_id,
+        skill_updates=result_data.pop("skill_updates", [])
     )
 
     return {
@@ -220,5 +236,5 @@ def abandon_assessment_session(
     """
     Abandon an in-progress assessment session.
     """
-    session = assessment_service.abandon_assessment(db, session_id=session_id)
+    session = assessment_service.abandon_assessment(db, session_id=session_id, student_id=student_profile.id)
     return session

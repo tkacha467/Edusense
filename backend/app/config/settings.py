@@ -19,8 +19,8 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.0-flash"
     CHROMA_PERSIST_DIRECTORY: str = "./chroma_data"
-    ML_MODEL_PATH: str = "../Models/best_model.pkl"
-    ML_SCALER_PATH: str = "../Models/scaler.pkl"
+    ML_MODEL_PATH: str = "../Models/best_model_v2.pkl"
+    ML_SCALER_PATH: str = "../Models/scaler_v2.pkl"
     ML_FEATURES_PATH: str = "../Models/selected_features.json"
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 

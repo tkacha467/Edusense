@@ -30,7 +30,7 @@ class GeminiProvider(BaseLLMProvider):
             except Exception as e:
                 logger.warning(f"Could not initialize google.generativeai client: {e}")
 
-    def generate_completion(
+    async def generate_completion(
         self,
         prompt: str,
         system_instruction: Optional[str] = None,
@@ -50,7 +50,7 @@ class GeminiProvider(BaseLLMProvider):
                 if json_mode:
                     generation_config["response_mime_type"] = "application/json"
 
-                response = self.client.generate_content(
+                response = await self.client.generate_content_async(
                     full_prompt,
                     generation_config=generation_config
                 )
@@ -62,11 +62,10 @@ class GeminiProvider(BaseLLMProvider):
         # Structured fallback response when API key is missing or offline
         if json_mode:
             return json.dumps({
-                "status": "success",
-                "message": "Generated via EduSense AI Fallback Engine",
-                "content": full_prompt[:200]
+                "status": "error",
+                "message": "The AI engine is currently unavailable."
             })
-        return f"[EduSense AI Assistant]: {full_prompt[:150]}..."
+        return "I'm sorry, but the AI engine is currently unavailable. Please try again later."
 
     def generate_stream(
         self,

@@ -98,12 +98,24 @@ def list_enrolled_students(
         target_subject_ids = assigned_subject_ids
 
     # Query students enrolled in target subjects
-    # In a full system, student_service/repo filters by target_subject_ids
-    students, total = student_service.student_repo.get_paginated(
-        db=db,
-        page=page,
-        page_size=page_size
+    from sqlalchemy import select, func
+    from app.models.student import StudentProfile
+    from app.models.learning import StudentSubject
+
+    stmt = select(StudentProfile).join(StudentSubject).where(
+        StudentSubject.subject_id.in_(target_subject_ids)
     )
+    if search:
+        stmt = stmt.where(
+            (StudentProfile.institution.ilike(f"%{search}%")) |
+            (StudentProfile.department.ilike(f"%{search}%"))
+        )
+
+    total_stmt = select(func.count()).select_from(stmt.subquery())
+    total = db.execute(total_stmt).scalar() or 0
+
+    stmt = stmt.distinct().offset((page - 1) * page_size).limit(page_size)
+    students = db.execute(stmt).scalars().all()
 
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
 

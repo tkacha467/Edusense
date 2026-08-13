@@ -5,35 +5,57 @@ import { Input } from '../../components/ui/Input';
 import { BrainCircuit, Play, BarChart2, ShieldCheck, Loader2 } from 'lucide-react';
 import { SkeletonLoader } from '../../components/ui/Feedback';
 import { SimpleBarChart } from '../../components/ui/Charts';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { knowledgeApi } from '../../api/knowledgeApi';
+import { useAuth } from '../../contexts/AuthContext';
 
 export function KnowledgeDecay() {
-  const [isPredicting, setIsPredicting] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const { currentUser } = useAuth();
+  const [selectedSkillId, setSelectedSkillId] = useState('');
+
+  const { data: profiles, isLoading: isLoadingProfiles } = useQuery({
+    queryKey: ['knowledgeProfiles'],
+    queryFn: async () => {
+      const res = await knowledgeApi.getProfiles();
+      // Auto-select first skill
+      if (res.data && res.data.length > 0 && !selectedSkillId) {
+        setSelectedSkillId(res.data[0].skill_id);
+      }
+      return res.data;
+    },
+    enabled: !!currentUser
+  });
+
+  const predictMutation = useMutation({
+    mutationFn: async (skill_id: string) => {
+      const res = await knowledgeApi.predict({ skill_id });
+      return res.data;
+    },
+  });
 
   const handlePredict = () => {
-    setIsPredicting(true);
-    setResult(null);
-    // Simulate Data Analysis
-    setTimeout(() => {
-      setIsPredicting(false);
-      setResult({
-        healthScore: 18,
-        features: [
-          { name: 'Time Taken on Problem', contribution: 'High Impact' },
-          { name: 'Confidence: Concentrating', contribution: 'Medium Impact' },
-          { name: 'Total Hint Count', contribution: 'Low Impact' },
-        ],
-        recommendation: 'Immediate spaced repetition session required for Addition and Fraction Division.',
-        graphData: [
-          { name: 'Day 1', engagement: 100 },
-          { name: 'Day 3', engagement: 85 },
-          { name: 'Day 7', engagement: 65 },
-          { name: 'Day 14', engagement: 40 },
-          { name: 'Day 30', engagement: 18 }, // Current projection
-        ]
-      });
-    }, 2500);
+    if (!selectedSkillId) return;
+    predictMutation.mutate(selectedSkillId);
   };
+
+  const isPredicting = predictMutation.isPending;
+  const predictionData = predictMutation.data;
+
+  // Map backend response to UI format
+  const result = predictionData ? {
+    healthScore: Math.round(predictionData.retention_score * 100),
+    features: [
+      { name: 'Forget Probability', contribution: `${Math.round(predictionData.forget_probability * 100)}%` },
+      { name: 'Risk Level', contribution: predictionData.risk_level },
+      { name: 'Days Since Review', contribution: predictionData.days_since_review.toFixed(1) },
+    ],
+    recommendation: predictionData.recommended_action,
+    graphData: [
+      { name: 'Current', engagement: Math.round(predictionData.retention_score * 100) },
+      { name: 'Day 3 (Est)', engagement: Math.max(0, Math.round(predictionData.retention_score * 100 - 15)) },
+      { name: 'Day 7 (Est)', engagement: Math.max(0, Math.round(predictionData.retention_score * 100 - 35)) },
+    ]
+  } : null;
 
   return (
     <div className="space-y-6">
@@ -52,14 +74,27 @@ export function KnowledgeDecay() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Student ID</label>
-                <Input placeholder="e.g. STU-008" />
+                <Input value={currentUser?.id || ''} disabled placeholder="e.g. STU-008" />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Skill Module</label>
-                <select className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <option>Addition</option>
-                  <option>Multiplication</option>
-                  <option>Fraction Division</option>
+                <select 
+                  className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={selectedSkillId}
+                  onChange={(e) => setSelectedSkillId(e.target.value)}
+                  disabled={isLoadingProfiles || !profiles?.length}
+                >
+                  {isLoadingProfiles ? (
+                    <option value="">Loading skills...</option>
+                  ) : profiles && profiles.length > 0 ? (
+                    profiles.map((p: any) => (
+                      <option key={p.skill_id} value={p.skill_id}>
+                        {p.skill?.name || `Skill ${p.skill_id.substring(0, 8)}`}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="">No skills found</option>
+                  )}
                 </select>
               </div>
               <div className="space-y-2">
@@ -75,7 +110,7 @@ export function KnowledgeDecay() {
               <Button 
                 className="w-full mt-4" 
                 onClick={handlePredict}
-                disabled={isPredicting}
+                disabled={isPredicting || !selectedSkillId}
               >
                 {isPredicting ? (
                   <>

@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel as PydanticBase, Field, ConfigDict
 from app.schemas.base import BaseResponse
-from app.core.enums import UserRole
+from app.core.enums import UserRole, UserStatus
 
 class UserCreate(PydanticBase):
     """Schema for creating a new user."""
@@ -11,6 +11,8 @@ class UserCreate(PydanticBase):
     display_name: str = Field(min_length=1, max_length=150)
     role: UserRole
     avatar_url: Optional[str] = None
+    institution_id: Optional[str] = None
+    department_id: Optional[str] = None
 
 class UserUpdate(PydanticBase):
     """Schema for updating an existing user."""
@@ -34,6 +36,7 @@ class UserResponse(BaseResponse):
     email: str
     display_name: str
     role: UserRole
+    status: UserStatus
     avatar_url: Optional[str]
     is_active: bool
     is_email_verified: bool

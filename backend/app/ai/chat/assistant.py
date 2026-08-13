@@ -11,12 +11,12 @@ from app.models import StudentProfile
 class AIStudyAssistant:
     """Grounded AI Study Assistant answering student queries with RAG context."""
 
-    def __init__(self, orchestrator: Optional[AIOrchestrator] = None) -> None:
+    def __init__(self, orchestrator: Optional[AIOrchestrator] = None, student_id: Optional[str] = None) -> None:
         self.orchestrator = orchestrator or AIOrchestrator()
         self.retriever = Retriever()
-        self.memory = ConversationMemoryService()
+        self.memory = ConversationMemoryService(student_id=student_id)
 
-    def answer_query(
+    async def answer_query(
         self,
         db: Session,
         student_profile: StudentProfile,
@@ -38,7 +38,7 @@ class AIStudyAssistant:
             "retrieved_context": retrieved_context
         }
 
-        result = self.orchestrator.execute(
+        result = await self.orchestrator.execute(
             prompt_key="ai_chat_v1",
             variables=variables,
             temperature=0.7,

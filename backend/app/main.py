@@ -13,6 +13,10 @@ from sqlalchemy.orm import Session
 
 from app.middleware.security import ProductionSecurityMiddleware
 
+# Import to register domain event listeners
+import app.events.handlers
+
+
 
 def create_app() -> FastAPI:
     """Create and configure FastAPI application."""

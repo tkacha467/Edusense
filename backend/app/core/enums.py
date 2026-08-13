@@ -2,11 +2,31 @@
 from enum import Enum
 
 
+class UserStatus(str, Enum):
+    """User account status."""
+    PENDING = "pending"
+    ACTIVE = "active"
+    SUSPENDED = "suspended"
+    REJECTED = "rejected"
+
+
+class FacultyRequestStatus(str, Enum):
+    """Faculty request status."""
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
 class UserRole(str, Enum):
     """User roles enum."""
-    STUDENT = "student"
-    FACULTY = "faculty"
+    SUPER_ADMIN = "super_admin"
     ADMIN = "admin"
+    DEPARTMENT_ADMIN = "department_admin"
+    FACULTY = "faculty"
+    STUDENT = "student"
+    RESEARCHER = "researcher"
+    PARENT = "parent"
+    GUEST = "guest"
 
 
 class DifficultyLevel(str, Enum):

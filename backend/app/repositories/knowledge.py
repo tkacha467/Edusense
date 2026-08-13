@@ -19,7 +19,8 @@ class KnowledgeProfileRepository(BaseRepository[KnowledgeProfile]):
 
     def get_by_student_and_skill(self, db: Session, student_id: str, skill_id: str) -> KnowledgeProfile | None:
         """Get specific knowledge profile."""
-        stmt = select(KnowledgeProfile).where(
+        from sqlalchemy.orm import joinedload
+        stmt = select(KnowledgeProfile).options(joinedload(KnowledgeProfile.student)).where(
             KnowledgeProfile.student_id == student_id,
             KnowledgeProfile.skill_id == skill_id
         )

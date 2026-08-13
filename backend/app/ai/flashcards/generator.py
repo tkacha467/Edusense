@@ -9,7 +9,7 @@ class FlashcardGenerator:
     def __init__(self, orchestrator: Optional[AIOrchestrator] = None) -> None:
         self.orchestrator = orchestrator or AIOrchestrator()
 
-    def generate_flashcards(
+    async def generate_flashcards(
         self,
         skill_name: str,
         difficulty: str = "intermediate",
@@ -22,7 +22,7 @@ class FlashcardGenerator:
             "count": count
         }
 
-        result = self.orchestrator.execute(
+        result = await self.orchestrator.execute(
             prompt_key="flashcards_v1",
             variables=variables,
             json_mode=True

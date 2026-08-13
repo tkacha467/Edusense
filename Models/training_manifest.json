@@ -1,0 +1,34 @@
+{
+  "model_version": "2.0.0",
+  "dataset": "model_ready_dataset.csv",
+  "training_date": "2026-08-13T03:38:53.974243+00:00",
+  "features": [
+    "interaction_order",
+    "past_attempts",
+    "past_correct",
+    "past_accuracy",
+    "rolling_accuracy",
+    "mastered"
+  ],
+  "threshold": 0.6,
+  "random_seed": 42,
+  "sklearn_version": "1.8.0",
+  "metrics_val": {
+    "Accuracy": 0.798114089113537,
+    "Precision": 0.8050642910431386,
+    "Recall": 0.9833297598627787,
+    "F1": 0.8853123567309317,
+    "ROC-AUC": 0.6781594834972786,
+    "PR-AUC": 0.8767687260019548,
+    "Brier Score": 0.15111568147588064
+  },
+  "coefficients": {
+    "interaction_order": 0.5102093731916462,
+    "past_attempts": 0.5102093731916462,
+    "past_correct": -0.6695491604970742,
+    "past_accuracy": -0.23608377667642,
+    "rolling_accuracy": -0.10166177626841283,
+    "mastered": -0.10653045195348582
+  },
+  "intercept": 1.4754257980788177
+}

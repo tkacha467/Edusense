@@ -97,7 +97,7 @@ def complete_study_task(
     rec_service: RecommendationService = Depends(get_recommendation_service)
 ) -> Any:
     """Mark a study task as completed."""
-    task = rec_service.complete_task(db, task_id=task_id)
+    task = rec_service.complete_task(db, task_id=task_id, student_id=student_profile.id)
     db.commit()
     return task
 
@@ -110,6 +110,6 @@ def skip_study_task(
     rec_service: RecommendationService = Depends(get_recommendation_service)
 ) -> Any:
     """Mark a study task as skipped."""
-    task = rec_service.skip_task(db, task_id=task_id)
+    task = rec_service.skip_task(db, task_id=task_id, student_id=student_profile.id)
     db.commit()
     return task

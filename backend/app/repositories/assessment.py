@@ -117,6 +117,13 @@ class QuestionOptionRepository(BaseRepository[QuestionOption]):
         stmt = select(QuestionOption).where(QuestionOption.question_id == question_id).order_by(asc(QuestionOption.order_index))
         return list(db.execute(stmt).scalars().all())
 
+    def get_by_ids(self, db: Session, option_ids: list[str]) -> list[QuestionOption]:
+        """Get options by a list of IDs."""
+        if not option_ids:
+            return []
+        stmt = select(QuestionOption).where(QuestionOption.id.in_(option_ids))
+        return list(db.execute(stmt).scalars().all())
+
     def get_correct_option(self, db: Session, question_id: str) -> QuestionOption | None:
         """Get correct option for a question."""
         stmt = select(QuestionOption).where(QuestionOption.question_id == question_id, QuestionOption.is_correct == True)

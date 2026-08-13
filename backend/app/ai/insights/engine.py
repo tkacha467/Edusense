@@ -13,7 +13,7 @@ class LearningInsightsEngine:
         self.orchestrator = orchestrator or AIOrchestrator()
         self.tracker = ProgressTracker()
 
-    def generate_student_insights(
+    async def generate_student_insights(
         self,
         db: Session,
         student_profile: StudentProfile
@@ -28,7 +28,7 @@ class LearningInsightsEngine:
             "improving_skills": "Array Sorting, Hash Tables"
         }
 
-        result = self.orchestrator.execute(
+        result = await self.orchestrator.execute(
             prompt_key="insights_v1",
             variables=variables,
             json_mode=False

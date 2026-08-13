@@ -165,13 +165,14 @@ class RecommendationService:
         """
         return self.task_repo.get_today_tasks(db, student_id=student_id)
 
-    def complete_task(self, db: Session, task_id: str) -> StudyTask:
+    def complete_task(self, db: Session, task_id: str, student_id: str) -> StudyTask:
         """
         Mark a study task as completed.
 
         Args:
             db (Session): Database session.
             task_id (str): Task ID.
+            student_id (str): Student ID for ownership verification.
 
         Returns:
             StudyTask: The updated task.
@@ -179,17 +180,24 @@ class RecommendationService:
         task = self.task_repo.get_by_id(db, task_id)
         if not task:
             raise NotFoundException(f"StudyTask '{task_id}' not found.")
+        
+        plan = self.plan_repo.get_by_id(db, task.study_plan_id)
+        if not plan or plan.student_id != student_id:
+            from app.core.exceptions import ForbiddenException
+            raise ForbiddenException("Study task does not belong to this student.")
+            
         return self.task_repo.update(
             db, db_obj=task, obj_in={"status": TaskStatus.COMPLETED, "completed_at": datetime.now(timezone.utc)}
         )
 
-    def skip_task(self, db: Session, task_id: str) -> StudyTask:
+    def skip_task(self, db: Session, task_id: str, student_id: str) -> StudyTask:
         """
         Mark a study task as skipped.
 
         Args:
             db (Session): Database session.
             task_id (str): Task ID.
+            student_id (str): Student ID for ownership verification.
 
         Returns:
             StudyTask: The updated task.
@@ -197,6 +205,12 @@ class RecommendationService:
         task = self.task_repo.get_by_id(db, task_id)
         if not task:
             raise NotFoundException(f"StudyTask '{task_id}' not found.")
+            
+        plan = self.plan_repo.get_by_id(db, task.study_plan_id)
+        if not plan or plan.student_id != student_id:
+            from app.core.exceptions import ForbiddenException
+            raise ForbiddenException("Study task does not belong to this student.")
+            
         return self.task_repo.update(db, db_obj=task, obj_in={"status": TaskStatus.SKIPPED})
 
     def get_pending_tasks(self, db: Session, student_id: str) -> List[StudyTask]:

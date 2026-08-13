@@ -26,24 +26,16 @@ class UserService:
         display_name: str,
         role: UserRole,
         avatar_url: Optional[str] = None,
+        institution_id: Optional[str] = None,
+        department_id: Optional[str] = None,
     ) -> User:
         """
         Register a new user and create their corresponding profile based on role.
-
-        Args:
-            db (Session): Database session.
-            firebase_uid (str): The unique identifier from Firebase Auth.
-            email (str): User's email address.
-            display_name (str): User's display name.
-            role (UserRole): The role of the user (e.g., student, faculty).
-            avatar_url (Optional[str]): URL to the user's avatar image.
-
-        Returns:
-            User: The newly created user entity.
-
-        Raises:
-            AlreadyExistsException: If the email or firebase_uid is already registered.
         """
+        from app.core.enums import UserStatus
+        from app.services.faculty_request import FacultyRequestService
+        from app.schemas.faculty_request import FacultyRequestCreate
+        
         existing_uid = self.user_repo.get_by_firebase_uid(db, firebase_uid=firebase_uid)
         if existing_uid:
             return existing_uid
@@ -52,6 +44,9 @@ class UserService:
         if self.user_repo.get_by_email(db, email=email):
             raise AlreadyExistsException(f"User with email '{email}' already exists.")
 
+        role_str = role.value if hasattr(role, "value") else str(role)
+        is_faculty = (role_str == UserRole.FACULTY.value)
+        
         # Create user
         user_data = {
             "firebase_uid": firebase_uid,
@@ -60,15 +55,22 @@ class UserService:
             "role": role,
             "avatar_url": avatar_url,
             "is_active": True,
+            "status": UserStatus.PENDING if is_faculty else UserStatus.ACTIVE,
         }
         user = self.user_repo.create(db, obj_in=user_data)
         
-        # db.flush() is handled by repository create, but we rely on user.id existing now
-        role_str = role.value if hasattr(role, "value") else str(role)
-        if role_str == UserRole.STUDENT.value:
-            self.student_profile_repo.create(db, user_id=user.id)
-        elif role_str == UserRole.FACULTY.value:
+        if is_faculty:
             self.faculty_profile_repo.create(db, user_id=user.id)
+            
+            # Create FacultyRequest
+            faculty_req_service = FacultyRequestService()
+            req_data = FacultyRequestCreate(
+                institution_id=institution_id,
+                department_id=department_id
+            )
+            faculty_req_service.submit_request(db, user.id, req_data)
+        elif role_str == UserRole.STUDENT.value:
+            self.student_profile_repo.create(db, user_id=user.id)
 
         return user
 

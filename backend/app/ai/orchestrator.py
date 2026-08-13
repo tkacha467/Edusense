@@ -21,7 +21,7 @@ class AIOrchestrator:
         self.prompt_manager = PromptManager()
         self.usage_logs = []
 
-    def execute(
+    async def execute(
         self,
         prompt_key: str,
         variables: Dict[str, Any],
@@ -47,7 +47,7 @@ class AIOrchestrator:
         while attempt <= max_retries and not success:
             try:
                 attempt += 1
-                response_text = self.provider.generate_completion(
+                response_text = await self.provider.generate_completion(
                     prompt=prompt_text,
                     system_instruction=system_instruction,
                     temperature=temperature,

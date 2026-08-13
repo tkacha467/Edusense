@@ -24,6 +24,7 @@ export const ROUTES = {
   // Student protected
   ONBOARDING: '/onboarding',
   STUDENT_DASHBOARD: '/student/dashboard',
+  STUDENT_LEARNING: '/student/learning',
   STUDENT_PLAN: '/student/plan',
   STUDENT_PROFILE: '/student/profile',
   

@@ -1,103 +1,73 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Bell, Check, Trash2 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { cn } from '../../../utils/cn';
 import { useAuth } from '../../../contexts/AuthContext';
-
-interface NotificationItem {
-  id: string;
-  title: string;
-  message: string;
-  time: string;
-  read: boolean;
-}
-
-interface RawNotification {
-  id: string;
-  userId: string;
-  title: string;
-  message: string;
-  isRead: boolean;
-  type: string;
-  createdAt: string;
-}
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { notificationApi } from '../../../api/notificationApi';
 
 export function NotificationCenter() {
   const { currentUser } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const queryClient = useQueryClient();
 
-  // Load notifications from localStorage
-  const loadNotifications = () => {
-    if (!currentUser) return;
-    try {
-      const dataStr = localStorage.getItem('edu_mock_notifications');
-      if (dataStr) {
-        const allNotifs: RawNotification[] = JSON.parse(dataStr);
-        const userNotifs = allNotifs
-          .filter((n) => n.userId === currentUser.id)
-          .map((n) => {
-            // format relative time or simple time
-            const date = new Date(n.createdAt);
-            const timeStr = isNaN(date.getTime())
-              ? 'Just now'
-              : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            return {
-              id: n.id,
-              title: n.title,
-              message: n.message,
-              time: timeStr,
-              read: n.isRead,
-            };
-          });
-        setNotifications(userNotifs);
-      }
-    } catch (e) {
-      console.error('Failed to load notifications', e);
+  const { data: notificationsData, isLoading: isLoadingNotifications, isError: isNotificationsError } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: async () => {
+      const res = await notificationApi.getNotifications();
+      return res.data;
+    },
+    enabled: !!currentUser,
+    refetchInterval: 30000,
+  });
+
+  const { data: unreadCountData } = useQuery({
+    queryKey: ['notificationsUnread'],
+    queryFn: async () => {
+      const res = await notificationApi.getUnreadCount();
+      return res.data.unread_count;
+    },
+    enabled: !!currentUser,
+    refetchInterval: 30000,
+  });
+
+  const markAsReadMutation = useMutation({
+    mutationFn: (id: string) => notificationApi.markAsRead(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notificationsUnread'] });
     }
-  };
+  });
 
-  useEffect(() => {
-    loadNotifications();
-  }, [currentUser]);
-
-  // Save changes to localStorage helper
-  const updateStoredNotifications = (updateFn: (all: RawNotification[]) => RawNotification[]) => {
-    try {
-      const dataStr = localStorage.getItem('edu_mock_notifications');
-      if (dataStr) {
-        const allNotifs: RawNotification[] = JSON.parse(dataStr);
-        const updated = updateFn(allNotifs);
-        localStorage.setItem('edu_mock_notifications', JSON.stringify(updated));
-      }
-    } catch (e) {
-      console.error('Failed to update notifications in storage', e);
+  const markAllAsReadMutation = useMutation({
+    mutationFn: () => notificationApi.markAllAsRead(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notificationsUnread'] });
     }
-  };
+  });
+
+  const notifications = notificationsData || [];
+  const unreadCount = unreadCountData || 0;
 
   const markAsRead = (id: string) => {
-    setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
-    updateStoredNotifications((all) =>
-      all.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-    );
+    markAsReadMutation.mutate(id);
   };
 
   const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
-    updateStoredNotifications((all) =>
-      all.map((n) => (n.userId === currentUser?.id ? { ...n, isRead: true } : n))
-    );
+    markAllAsReadMutation.mutate();
   };
 
   const clearAll = () => {
-    setNotifications([]);
-    updateStoredNotifications((all) =>
-      all.filter((n) => n.userId !== currentUser?.id)
-    );
+    markAllAsReadMutation.mutate();
   };
 
-
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return isNaN(date.getTime())
+      ? 'Just now'
+      : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
 
   return (
     <div className="relative">
@@ -116,17 +86,27 @@ export function NotificationCenter() {
             <div className="flex items-center justify-between border-b px-4 py-3">
               <h3 className="font-semibold text-gray-900">Notifications</h3>
               <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={markAllAsRead} className="h-8 text-xs">
+                <Button variant="ghost" size="sm" onClick={markAllAsRead} className="h-8 text-xs" disabled={markAllAsReadMutation.isPending || notifications.length === 0}>
                   <Check className="h-3 w-3 mr-1" /> Mark all read
                 </Button>
-                <Button variant="ghost" size="icon" onClick={clearAll} className="h-8 w-8 text-xs text-muted-foreground hover:text-destructive">
+                <Button variant="ghost" size="icon" onClick={clearAll} className="h-8 w-8 text-xs text-muted-foreground hover:text-destructive" disabled={markAllAsReadMutation.isPending || notifications.length === 0}>
                   <Trash2 className="h-3 w-3" />
                 </Button>
               </div>
             </div>
             
             <div className="max-h-[60vh] overflow-y-auto">
-              {notifications.length === 0 ? (
+              {isLoadingNotifications ? (
+                <div className="p-8 text-center text-sm text-muted-foreground flex flex-col items-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+                  Loading notifications...
+                </div>
+              ) : isNotificationsError ? (
+                <div className="p-8 text-center text-sm text-red-500 flex flex-col items-center">
+                  Failed to load notifications.
+                  <Button variant="outline" size="sm" className="mt-2" onClick={() => queryClient.invalidateQueries({ queryKey: ['notifications'] })}>Retry</Button>
+                </div>
+              ) : notifications.length === 0 ? (
                 <div className="p-8 text-center text-sm text-muted-foreground flex flex-col items-center">
                   <Bell className="h-8 w-8 text-gray-300 mb-2" />
                   No new notifications
@@ -138,19 +118,19 @@ export function NotificationCenter() {
                       key={notification.id} 
                       className={cn(
                         "p-4 hover:bg-gray-50 transition-colors cursor-pointer relative group",
-                        !notification.read && "bg-blue-50/50"
+                        !notification.is_read && "bg-blue-50/50"
                       )}
                       onClick={() => markAsRead(notification.id)}
                     >
-                      {!notification.read && (
+                      {!notification.is_read && (
                         <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-primary" />
                       )}
                       <div className="pl-3">
                         <div className="flex justify-between items-start mb-1">
-                          <p className={cn("text-sm font-medium", !notification.read ? "text-gray-900" : "text-gray-700")}>
+                          <p className={cn("text-sm font-medium", !notification.is_read ? "text-gray-900" : "text-gray-700")}>
                             {notification.title}
                           </p>
-                          <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">{notification.time}</span>
+                          <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">{formatTime(notification.created_at)}</span>
                         </div>
                         <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
                           {notification.message}

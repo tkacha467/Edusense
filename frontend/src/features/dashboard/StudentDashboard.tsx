@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { TrendAreaChart } from '../../components/ui/Charts';
@@ -6,23 +6,34 @@ import { Flame, BrainCircuit, CheckCircle2, TrendingDown, Target, BookOpen, Rock
 import { useAuth } from '../../contexts/AuthContext';
 import type { StudentProfile } from '../../types';
 import { useToast } from '../../contexts/ToastContext';
-import { dashboardService } from './DashboardService';
+import { useDashboard } from './hooks/useDashboard';
+import { Skeleton } from '../../components/ui/Skeleton';
 
 export function StudentDashboard() {
   const { currentUser } = useAuth();
   const { showToast } = useToast();
   const [isSimulating, setIsSimulating] = useState(false);
-  const [dashboardData, setDashboardData] = useState<any>(null);
-
-  useEffect(() => {
-    let mounted = true;
-    dashboardService.getDashboardData().then((data: any) => {
-      if (mounted) setDashboardData(data);
-    });
-    return () => { mounted = false; };
-  }, []);
+  
+  const { data: dashboardData, isLoading, error } = useDashboard();
 
   if (!currentUser || currentUser.role !== 'student') return null;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-12 w-1/3" />
+        <Skeleton className="h-[300px] w-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center text-red-500">
+        <p>Failed to load dashboard data. Please try again later.</p>
+      </div>
+    );
+  }
 
   const profile = currentUser as Partial<StudentProfile>;
   
@@ -31,19 +42,19 @@ export function StudentDashboard() {
   const streak = profile?.streak || 0;
   const minutesToday = profile?.minutesToday || 0;
   
-  // Use data from backend if available, fallback to profile mocks
-  const completedTopics = dashboardData?.assessmentHistory?.length ? dashboardData.assessmentHistory : (Array.isArray(profile?.completedTopics) ? profile.completedTopics : []);
-  const studyPlan = dashboardData?.todayTasks?.length ? dashboardData.todayTasks : (Array.isArray(profile?.studyPlan) ? profile.studyPlan : []);
+  // Use data from backend
+  const completedTopics = dashboardData?.assessmentHistory || [];
+  const studyPlan = dashboardData?.todayTasks || [];
   
-  // Example of using real knowledge profiles
-  const alerts = dashboardData?.knowledgeProfiles?.length 
-    ? dashboardData.knowledgeProfiles.filter((p: any) => p.forgetting_probability > 0.7).map((p: any) => ({
-        topic: p.topic_id,
-        retention: Math.round((1 - p.forgetting_probability) * 100)
+  // Use real knowledge profiles
+  const alerts = dashboardData?.knowledgeProfiles
+    ? dashboardData.knowledgeProfiles.filter(p => (p.forget_probability || 0) > 0.5).map(p => ({
+        topic: p.topic_name || p.topic_id || 'Unknown Topic',
+        retention: Math.round((p.retention_score || (1 - (p.forget_probability || 0))) * 100)
       })) 
-    : (Array.isArray(profile?.alerts) ? profile.alerts : []);
+    : [];
   
-  const predictions = Array.isArray(profile?.predictions) ? profile.predictions : [];
+  const predictions: any[] = []; // Re-enable when trend API is integrated
   
   const firstName = (profile?.fullName || 'Student').split(' ')[0];
 

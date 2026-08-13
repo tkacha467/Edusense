@@ -91,26 +91,36 @@ class FeatureEngineeringService:
 
 class PredictionEngineService:
     """Stage B: Executes trained Logistic Regression ML model inference on feature vectors."""
+    
+    _model = None
+    _scaler = None
+    _loaded = False
 
     def __init__(self) -> None:
         self.settings = get_settings()
-        self.model = None
-        self.scaler = None
         self.feature_names = ["interaction_order", "past_attempts", "past_correct", "past_accuracy", "rolling_accuracy", "mastered"]
         self._load_model_artifacts()
 
-    def _load_model_artifacts(self) -> None:
+    @classmethod
+    def _load_model_artifacts(cls) -> None:
         """Load trained scikit-learn model, scaler, and feature mapping from disk."""
-        model_path = os.path.abspath(self.settings.ML_MODEL_PATH)
-        scaler_path = os.path.abspath(self.settings.ML_SCALER_PATH)
+        if cls._loaded:
+            return
+            
+        settings = get_settings()
+        model_path = os.path.abspath(settings.ML_MODEL_PATH)
+        scaler_path = os.path.abspath(settings.ML_SCALER_PATH)
         
         if os.path.exists(model_path) and os.path.exists(scaler_path):
             try:
-                self.model = joblib.load(model_path)
-                self.scaler = joblib.load(scaler_path)
+                cls._model = joblib.load(model_path)
+                cls._scaler = joblib.load(scaler_path)
+                cls._loaded = True
                 logger.info(f"Loaded ML model from '{model_path}'")
             except Exception as e:
-                logger.error(f"Failed to load ML model artifacts: {e}")
+                logger.critical(f"Failed to load ML model artifacts from {model_path} and {scaler_path}. Exception: {e}")
+        else:
+            logger.critical(f"ML model artifacts missing. Expected paths: {model_path}, {scaler_path}")
 
     def predict_forgetting_probability(
         self,
@@ -133,10 +143,10 @@ class PredictionEngineService:
             1.0 if mastered else 0.0
         ]])
 
-        if self.model and self.scaler:
+        if self.__class__._model and self.__class__._scaler:
             try:
-                scaled_features = self.scaler.transform(feature_vector)
-                probabilities = self.model.predict_proba(scaled_features)[0]
+                scaled_features = self.__class__._scaler.transform(feature_vector)
+                probabilities = self.__class__._model.predict_proba(scaled_features)[0]
                 
                 # Assume index 1 is forget/decay probability
                 forget_prob = float(probabilities[1]) if len(probabilities) > 1 else float(probabilities[0])
@@ -219,8 +229,8 @@ class KnowledgeDecayService:
             forget_probability=forget_prob,
             retention_score=retention_score,
             confidence_score=confidence_score,
-            model_version="logistic_regression_v1.0",
-            triggered_by=triggered_by.value if hasattr(triggered_by, 'value') else str(triggered_by)
+            model_version="logistic_regression_v2.0",
+            triggered_by=triggered_by
         )
 
         # Step 4: High-Risk Alert Guard

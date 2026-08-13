@@ -1,0 +1,28 @@
+model:
+  algorithm: LogisticRegression
+  version: v2.0.0
+
+dataset:
+  version: 1.0.0
+  split_seed: 42
+
+features:
+  - interaction_order
+  - past_attempts
+  - past_correct
+  - past_accuracy
+  - rolling_accuracy
+  - mastered
+
+preprocessing:
+  scaler: StandardScaler
+
+evaluation:
+  metrics:
+    - accuracy
+    - precision
+    - recall
+    - f1
+    - roc_auc
+    - pr_auc
+    - brier_score

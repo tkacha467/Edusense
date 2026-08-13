@@ -11,7 +11,7 @@ class StudyNotesSummarizer:
         self.orchestrator = orchestrator or AIOrchestrator()
         self.retriever = Retriever()
 
-    def generate_summary(self, topic_name: str) -> Dict[str, Any]:
+    async def generate_summary(self, topic_name: str) -> Dict[str, Any]:
         """Retrieves topic context and generates structured summary."""
         context = self.retriever.retrieve_context(topic_name, top_k=3)
 
@@ -20,7 +20,7 @@ class StudyNotesSummarizer:
             "context": context
         }
 
-        result = self.orchestrator.execute(
+        result = await self.orchestrator.execute(
             prompt_key="summaries_v1",
             variables=variables,
             json_mode=True

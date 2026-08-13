@@ -24,6 +24,7 @@ import { Profile } from './features/profile/Profile';
 // Student Pages
 import { Onboarding } from './features/auth/pages/Onboarding';
 import { StudentDashboard } from './features/dashboard/StudentDashboard';
+import { LearningHub } from './features/learning/pages/LearningHub';
 import { StudyPlan } from './features/study-planner/pages/StudyPlan';
 import { AssessmentPage } from './features/assessment/AssessmentPage';
 import { KnowledgeDecayPage } from './features/knowledge-decay/KnowledgeDecayPage';
@@ -33,6 +34,9 @@ import { AIAssistantPage } from './features/ai-assistant/AIAssistantPage';
 import { FacultyDashboard } from './features/dashboard/FacultyDashboard';
 import { FacultyAnalytics } from './pages/faculty/FacultyAnalytics';
 import { FacultyReports } from './pages/faculty/FacultyReports';
+
+// Admin Pages
+import { AdminDashboard } from './pages/admin/AdminDashboard';
 
 // Routes
 import { ProtectedRoute } from './app/routes/ProtectedRoute';
@@ -82,10 +86,18 @@ function App() {
           </Route>
         </Route>
 
+        {/* Admin Protected Routes */}
+        <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+          <Route element={<AppLayout />}>
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          </Route>
+        </Route>
+
         {/* Student Protected Routes */}
         <Route element={<ProtectedRoute allowedRoles={['student']} />}>
           <Route element={<StudentLayout />}>
             <Route path="/student/dashboard" element={<StudentDashboard />} />
+            <Route path="/student/learning" element={<LearningHub />} />
             <Route path="/student/plan" element={<StudyPlan />} />
             <Route path="/student/profile" element={<Profile />} />
             <Route path="/student/assessment" element={<AssessmentPage />} />

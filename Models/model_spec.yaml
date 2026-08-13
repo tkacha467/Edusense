@@ -1,0 +1,36 @@
+model:
+  name: "EduSense Knowledge Decay Predictor"
+  version: "v2.0.0"
+  algorithm: "LogisticRegression"
+  objective: "Predict forgetting probability (likelihood of future failure) based on interaction history."
+
+files:
+  - best_model_v2.pkl
+  - scaler_v2.pkl
+  - best_model.onnx
+  - training_manifest.json
+
+features:
+  - interaction_order: "Total number of interactions the student has had with the skill."
+  - past_attempts: "Number of past attempts specifically on this skill."
+  - past_correct: "Number of successful past attempts on this skill."
+  - past_accuracy: "Overall accuracy on this skill (past_correct / past_attempts)."
+  - rolling_accuracy: "Accuracy over the most recent interactions (windowed)."
+  - mastered: "Boolean (1.0 or 0.0) indicating if the student has ever crossed the mastery threshold."
+
+target:
+  name: "forget_event"
+  definition: "future_accuracy < 0.60"
+  class_0: "Retention (future_accuracy >= 0.60)"
+  class_1: "Forgetting (future_accuracy < 0.60)"
+
+hyperparameters:
+  class_weight: null # Standard Logistic Regression
+  random_state: 42
+  solver: "lbfgs"
+  max_iter: 1000
+
+training_environment:
+  scikit_learn_version: "1.8.0"
+  python_version: "3.12"
+  seed: 42

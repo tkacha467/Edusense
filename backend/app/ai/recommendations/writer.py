@@ -10,7 +10,7 @@ class AIRecommendationWriter:
     def __init__(self, orchestrator: Optional[AIOrchestrator] = None) -> None:
         self.orchestrator = orchestrator or AIOrchestrator()
 
-    def enhance_recommendation_text(
+    async def enhance_recommendation_text(
         self,
         decision: RecommendationDecision
     ) -> Dict[str, Any]:
@@ -22,7 +22,7 @@ class AIRecommendationWriter:
             "forget_prob": int(decision.forget_probability * 100)
         }
 
-        result = self.orchestrator.execute(
+        result = await self.orchestrator.execute(
             prompt_key="recommendations_v1",
             variables=variables,
             json_mode=False

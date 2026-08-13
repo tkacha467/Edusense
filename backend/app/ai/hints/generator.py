@@ -9,7 +9,7 @@ class HintGenerator:
     def __init__(self, orchestrator: Optional[AIOrchestrator] = None) -> None:
         self.orchestrator = orchestrator or AIOrchestrator()
 
-    def generate_hint(
+    async def generate_hint(
         self,
         question_text: str,
         skill_name: str = "Target Skill"
@@ -20,7 +20,7 @@ class HintGenerator:
             "skill_name": skill_name
         }
 
-        result = self.orchestrator.execute(
+        result = await self.orchestrator.execute(
             prompt_key="hints_v1",
             variables=variables,
             json_mode=False

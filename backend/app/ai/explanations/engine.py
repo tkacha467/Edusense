@@ -11,7 +11,7 @@ class ExplanationEngine:
         self.orchestrator = orchestrator or AIOrchestrator()
         self.retriever = Retriever()
 
-    def explain_concept(
+    async def explain_concept(
         self,
         concept_name: str,
         subject_name: str = "Computer Science",
@@ -27,7 +27,7 @@ class ExplanationEngine:
             "context": context
         }
 
-        result = self.orchestrator.execute(
+        result = await self.orchestrator.execute(
             prompt_key="explanations_v1",
             variables=variables,
             json_mode=False

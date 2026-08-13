@@ -5,7 +5,6 @@ import { AuthProvider } from '../contexts/AuthContext';
 import { ToastProvider } from '../contexts/ToastContext';
 import { ModalProvider } from '../contexts/ModalContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
-import { NotificationProvider } from '../contexts/NotificationContext';
 
 const queryClient = new QueryClient();
 
@@ -17,9 +16,7 @@ export const AppProviders: React.FC<{ children: React.ReactNode }> = ({ children
           <ToastProvider>
             <ModalProvider>
               <AuthProvider>
-                <NotificationProvider>
-                  {children}
-                </NotificationProvider>
+                {children}
               </AuthProvider>
             </ModalProvider>
           </ToastProvider>

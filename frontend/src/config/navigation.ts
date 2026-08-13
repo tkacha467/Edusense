@@ -21,6 +21,7 @@ export interface NavItem {
 
 export const STUDENT_NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', path: ROUTES.STUDENT_DASHBOARD, icon: LayoutDashboard },
+  { label: 'Learning Hub', path: ROUTES.STUDENT_LEARNING, icon: BookOpen },
   { label: 'Study Plan', path: ROUTES.STUDENT_PLAN, icon: BookOpen },
 ];
 

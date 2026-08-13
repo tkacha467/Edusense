@@ -44,8 +44,10 @@ export interface RegisterUserData {
   fullName?: string;
   name?: string;
   password?: string;
-  role?: 'student' | 'teacher' | 'admin';
+  role?: 'student' | 'teacher' | 'admin' | 'faculty';
   department?: string;
+  institution_id?: string;
+  department_id?: string;
 }
 
 export const register = async (userData: RegisterUserData): Promise<User> => {
@@ -57,7 +59,9 @@ export const register = async (userData: RegisterUserData): Promise<User> => {
       firebase_uid: uid,
       email: userData.email,
       display_name: userData.fullName || userData.name || userData.email.split('@')[0],
-      role: userData.role || 'student'
+      role: userData.role || 'student',
+      institution_id: userData.institution_id,
+      department_id: userData.department_id
     }, {
       headers: { Authorization: `Bearer ${devToken}` }
     });
