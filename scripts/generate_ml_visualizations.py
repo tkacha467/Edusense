@@ -77,6 +77,33 @@ def generate_visualizations():
     plt.savefig("reports/figures/threshold_optimization.png", dpi=300, bbox_inches='tight')
     plt.close()
     
+    print("Generating ROC and PR Curves...")
+    fpr, tpr, _ = roc_curve(y_test, y_prob)
+    from sklearn.metrics import auc
+    roc_auc = auc(fpr, tpr)
+    
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (AUC = {roc_auc:.3f})')
+    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver Operating Characteristic (ROC)')
+    plt.legend(loc="lower right")
+    plt.grid(True, alpha=0.3)
+    plt.savefig("reports/figures/roc_curve.png", dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    pr_auc = auc(recalls, precisions)
+    plt.figure(figsize=(8, 6))
+    plt.plot(recalls, precisions, color='blue', lw=2, label=f'PR curve (AUC = {pr_auc:.3f})')
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('Precision-Recall Curve')
+    plt.legend(loc="lower left")
+    plt.grid(True, alpha=0.3)
+    plt.savefig("reports/figures/pr_curve.png", dpi=300, bbox_inches='tight')
+    plt.close()
+
     print("Generating Confusion Matrix...")
     y_pred_opt = (y_prob >= opt_threshold).astype(int)
     cm = confusion_matrix(y_test, y_pred_opt)
