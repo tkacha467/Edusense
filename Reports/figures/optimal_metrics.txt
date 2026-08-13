@@ -1,0 +1,4 @@
+Optimal Threshold: 0.491
+Confusion Matrix:
+TN=120, FP=2019
+FN=80, TP=8577
