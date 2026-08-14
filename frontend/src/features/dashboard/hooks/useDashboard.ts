@@ -6,8 +6,8 @@ import {
   fetchRevisionQueue,
   fetchWeakSkills,
   fetchRecentActivities,
-  RevisionQueueQueryParams,
 } from '../api/dashboardApi';
+import type { RevisionQueueQueryParams } from '../api/dashboardApi';
 
 export const useProfileSummary = () => {
   return useQuery({
