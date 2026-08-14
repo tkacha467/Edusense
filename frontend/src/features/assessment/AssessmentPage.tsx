@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAssessment } from './hooks/useAssessment';
 import { useSubjects } from '../learning/hooks/useLearning';
 import { useAssessmentSession, useCancelSession } from './hooks/useAssessmentSession';
+import { useSaveAnswer } from './hooks/useSaveAnswer';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../../components/ui/Button';
@@ -10,6 +11,12 @@ import {
   Loader2, CheckCircle2, Clock, AlertTriangle, ArrowRight, 
   ArrowLeft, BookOpen, Award, FileText, ShieldAlert, XCircle 
 } from 'lucide-react';
+
+// Import modular Phase 3 components
+import { AssessmentHeader } from './components/AssessmentHeader';
+import { ProgressBar } from './components/ProgressBar';
+import { QuestionCard } from './components/QuestionCard';
+import { QuestionNavigator } from './components/QuestionNavigator';
 
 export function AssessmentPage() {
   const navigate = useNavigate();
@@ -33,11 +40,12 @@ export function AssessmentPage() {
   const [reviewLater, setReviewLater] = useState<Record<string, boolean>>({});
 
   const { data: subjects, isLoading: isLoadingSubjects, error: subjectsError } = useSubjects();
-  const { generateSession, startSession, questions, isLoadingQuestions, submitAssessment } = useAssessment(sessionId);
+  const { questions, isLoadingQuestions, submitAssessment, getDraftResponses } = useAssessment(sessionId);
   const cancelSessionMutation = useCancelSession();
+  const saveAnswerMutation = useSaveAnswer(sessionId || '');
 
   // Load backend session details for route protection
-  const { data: sessionDetails, isLoading: isLoadingSessionDetails, error: sessionDetailsError } = useAssessmentSession(sessionId);
+  const { data: sessionDetails, isLoading: isLoadingSessionDetails } = useAssessmentSession(sessionId);
 
   // Set default subject if state has it
   useEffect(() => {
@@ -46,6 +54,40 @@ export function AssessmentPage() {
       setViewState('landing');
     }
   }, [stateSubjectId]);
+
+  // Restore draft answers from local storage
+  useEffect(() => {
+    if (sessionId) {
+      const drafts = getDraftResponses(sessionId);
+      if (Object.keys(drafts).length > 0) {
+        setResponses(drafts);
+        console.log(`[Session Recovery] Restored ${Object.keys(drafts).length} draft answers from storage.`);
+      }
+    }
+  }, [sessionId]);
+
+  // Timer calculation from started_at
+  useEffect(() => {
+    if (sessionDetails && sessionDetails.started_at && viewState === 'in_progress') {
+      const startTime = new Date(sessionDetails.started_at).getTime();
+      const limit = (sessionDetails.time_limit_seconds || 900) * 1000;
+      
+      const updateTimer = () => {
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, Math.floor((limit - elapsed) / 1000));
+        setTimeRemaining(remaining);
+        
+        if (remaining === 0) {
+          console.warn("[Timer Expiry] Assessment limit reached. Autosubmitting responses.");
+          handleFinalSubmit();
+        }
+      };
+
+      updateTimer();
+      const interval = setInterval(updateTimer, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [sessionDetails, viewState]);
 
   // Route & Session ownership validation
   useEffect(() => {
@@ -72,30 +114,12 @@ export function AssessmentPage() {
     }
   }, [sessionId, sessionDetails, currentUser]);
 
-  // Timer effect
-  useEffect(() => {
-    let timer: any;
-    if (viewState === 'in_progress' && timeRemaining > 0) {
-      timer = setInterval(() => {
-        setTimeRemaining((prev) => prev - 1);
-      }, 1000);
-    } else if (timeRemaining === 0 && viewState === 'in_progress') {
-      handleFinalSubmit();
-    }
-    return () => clearInterval(timer);
-  }, [viewState, timeRemaining]);
-
   const handleStart = async () => {
     if (!selectedSubjectId) return;
     setViewState('loading_session');
     try {
       // Create session
-      const session = await generateSession.mutateAsync({ subjectId: selectedSubjectId, totalQuestions: 5 });
-      setSessionId(session.id);
-      
-      // Start session
-      await startSession.mutateAsync(session.id);
-      setViewState('in_progress');
+      const session = await submitAssessment.mutateAsync({ sessionId: '', responses: [] }); // Stub, handled in dashboard now
     } catch (err) {
       console.error("Failed to start assessment:", err);
       setViewState('landing');
@@ -103,7 +127,15 @@ export function AssessmentPage() {
   };
 
   const handleOptionSelect = (questionId: string, optionId: string) => {
+    // 1. Update state
     setResponses((prev) => ({ ...prev, [questionId]: optionId }));
+    
+    // 2. Sync / Autosave to storage & query cache
+    saveAnswerMutation.mutate({
+      question_id: questionId,
+      selected_option_id: optionId,
+      time_taken_seconds: 15
+    });
   };
 
   const toggleReviewLater = (questionId: string) => {
@@ -117,7 +149,7 @@ export function AssessmentPage() {
       const payload = Object.entries(responses).map(([qId, optId]) => ({
         question_id: qId,
         selected_option_id: optId,
-        time_taken_seconds: 15 // tracked time estimation
+        time_taken_seconds: 15
       }));
       const result = await submitAssessment.mutateAsync({ sessionId, responses: payload });
       setResultData(result);
@@ -128,10 +160,16 @@ export function AssessmentPage() {
     }
   };
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  const handleAbandon = async () => {
+    if (!sessionId) return;
+    if (confirm("Are you sure you want to abandon this assessment? Your progress will be lost permanently.")) {
+      try {
+        await cancelSessionMutation.mutateAsync(sessionId);
+        navigate('/student/dashboard');
+      } catch (err) {
+        console.error("Failed to abandon session:", err);
+      }
+    }
   };
 
   // --- Step A: Subject Selection Screen ---
@@ -358,128 +396,92 @@ export function AssessmentPage() {
     const isLastQuestion = currentQuestionIndex === questions.length - 1;
     const allAnswered = questions.every((q: any) => responses[q.id]);
     const isMarkedReview = !!reviewLater[currentQ.id];
+    const questionIds = questions.map((q: any) => q.id);
 
     return (
-      <div className="p-4 md:p-8 max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
-        
-        {/* Main Question Area */}
-        <div className="md:col-span-3 flex flex-col">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-muted-foreground">Question {currentQuestionIndex + 1} of {questions.length}</h2>
-            <div className={`flex items-center space-x-2 font-mono text-xl font-bold px-4 py-2 rounded-lg ${timeRemaining < 60 ? 'bg-destructive/10 text-destructive animate-pulse' : 'bg-secondary text-secondary-foreground'}`}>
-              <Clock className="w-5 h-5" />
-              <span>{formatTime(timeRemaining)}</span>
-            </div>
-          </div>
+      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+        {/* Header Widget */}
+        <AssessmentHeader
+          title={sessionDetails?.title || 'Adaptive Evaluation'}
+          timeRemaining={timeRemaining}
+          onAbandon={handleAbandon}
+          isAbandonPending={cancelSessionMutation.isPending}
+        />
 
-          <Card className="flex-1 shadow-lg border-primary/10">
-            <CardHeader className="bg-muted/30 border-b flex flex-row items-center justify-between">
-              <CardTitle className="text-xl font-medium leading-relaxed">
-                {currentQ.question_text}
-              </CardTitle>
+        {/* Progress Tracker */}
+        <ProgressBar
+          current={Object.keys(responses).length}
+          total={questions.length}
+        />
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {/* Main Question Display */}
+          <div className="md:col-span-3 flex flex-col space-y-6">
+            <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-150">
+              <span className="text-sm font-bold text-gray-700">Question {currentQuestionIndex + 1} of {questions.length}</span>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => toggleReviewLater(currentQ.id)}
-                className={`rounded-full shrink-0 ${isMarkedReview ? 'text-amber-600 bg-amber-50' : 'text-gray-400'}`}
+                className={`rounded-xl shrink-0 ${isMarkedReview ? 'text-amber-700 bg-amber-50 border border-amber-200' : 'text-gray-400'}`}
               >
-                <AlertTriangle className="w-4 h-4 mr-1" />
-                {isMarkedReview ? 'Review Listed' : 'Review Later'}
+                <AlertTriangle className="w-4 h-4 mr-1.5" />
+                {isMarkedReview ? 'Review Listed' : 'Mark for Review'}
               </Button>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              {currentQ.options.map((opt: any) => {
-                const isSelected = responses[currentQ.id] === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={() => handleOptionSelect(currentQ.id, opt.id)}
-                    className={`w-full text-left p-5 rounded-xl border-2 transition-all duration-200 text-lg flex items-center group
-                      ${isSelected 
-                        ? 'border-primary bg-primary/5 shadow-md transform scale-[1.01]' 
-                        : 'border-border hover:border-primary/50 hover:bg-muted'}`}
-                  >
-                    <div className={`w-6 h-6 rounded-full border-2 mr-4 flex items-center justify-center shrink-0 transition-colors
-                      ${isSelected ? 'border-primary' : 'border-muted-foreground group-hover:border-primary/50'}`}>
-                      {isSelected && <div className="w-3 h-3 rounded-full bg-primary" />}
-                    </div>
-                    {opt.option_text}
-                  </button>
-                )
-              })}
-            </CardContent>
-          </Card>
+            </div>
 
-          <div className="flex justify-between mt-6">
-            <Button 
-              variant="outline" 
-              size="lg"
-              disabled={currentQuestionIndex === 0} 
-              onClick={() => setCurrentQuestionIndex(prev => prev - 1)}
-              className="px-8 rounded-full"
-            >
-              <ArrowLeft className="mr-2 w-5 h-5" /> Previous
-            </Button>
-            
-            {isLastQuestion ? (
+            <QuestionCard
+              question={currentQ as any}
+              selectedOptionId={responses[currentQ.id]}
+              onOptionSelect={(optId) => handleOptionSelect(currentQ.id, optId)}
+            />
+
+            {/* Navigation Buttons */}
+            <div className="flex justify-between items-center pt-4 border-t">
               <Button 
-                size="lg" 
-                onClick={handleFinalSubmit} 
-                disabled={!allAnswered}
-                className="px-8 rounded-full shadow-lg hover:shadow-primary/25"
+                variant="outline" 
+                size="lg"
+                disabled={currentQuestionIndex === 0} 
+                onClick={() => setCurrentQuestionIndex(prev => prev - 1)}
+                className="px-6 rounded-xl text-sm"
               >
-                Submit Assessment <CheckCircle2 className="ml-2 w-5 h-5" />
+                <ArrowLeft className="mr-2 w-4 h-4" /> Previous
               </Button>
-            ) : (
-              <Button 
-                size="lg" 
-                onClick={() => setCurrentQuestionIndex(prev => prev + 1)}
-                className="px-8 rounded-full"
-              >
-                Next <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
-            )}
+              
+              {isLastQuestion ? (
+                <Button 
+                  size="lg" 
+                  onClick={handleFinalSubmit} 
+                  disabled={!allAnswered || submitAssessment.isPending}
+                  className="px-8 rounded-xl shadow-lg hover:shadow-primary/20 text-sm font-bold"
+                >
+                  {submitAssessment.isPending ? 'Submitting...' : 'Submit Assessment'} 
+                  <CheckCircle2 className="ml-2 w-4 h-4" />
+                </Button>
+              ) : (
+                <Button 
+                  size="lg" 
+                  onClick={() => setCurrentQuestionIndex(prev => prev + 1)}
+                  className="px-6 rounded-xl text-sm"
+                >
+                  Next <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Sidebar Palette Navigation */}
+          <div className="md:col-span-1">
+            <QuestionNavigator
+              totalQuestions={questions.length}
+              currentIndex={currentQuestionIndex}
+              responses={responses}
+              questionIds={questionIds}
+              reviewLater={reviewLater}
+              onJump={(idx) => setCurrentQuestionIndex(idx)}
+            />
           </div>
         </div>
-
-        {/* Sidebar Question Palette */}
-        <div className="hidden md:block md:col-span-1 border-l pl-8 space-y-6">
-          <div>
-            <h3 className="font-semibold text-lg mb-4 text-foreground">Question Palette</h3>
-            <div className="grid grid-cols-4 gap-2">
-              {questions.map((q: any, i: number) => {
-                const isAnswered = !!responses[q.id];
-                const isCurrent = currentQuestionIndex === i;
-                const isMarked = !!reviewLater[q.id];
-                return (
-                  <button
-                    key={q.id}
-                    onClick={() => setCurrentQuestionIndex(i)}
-                    className={`w-10 h-10 rounded-lg flex items-center justify-center font-medium text-sm transition-all
-                      ${isCurrent ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}
-                      ${isMarked ? 'bg-amber-100 text-amber-800 border-amber-300 border' : 
-                        isAnswered ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
-                  >
-                    {i + 1}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-          
-          <div className="p-4 bg-muted/30 rounded-xl space-y-3">
-            <div className="flex items-center text-sm">
-              <div className="w-4 h-4 rounded bg-primary mr-3 text-white"></div> Answered
-            </div>
-            <div className="flex items-center text-sm">
-              <div className="w-4 h-4 rounded bg-amber-100 border border-amber-300 mr-3"></div> Review Later
-            </div>
-            <div className="flex items-center text-sm">
-              <div className="w-4 h-4 rounded bg-muted mr-3"></div> Unanswered
-            </div>
-          </div>
-        </div>
-        
       </div>
     );
   }
