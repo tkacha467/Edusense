@@ -33,6 +33,9 @@ import { AIAssistantPage } from './features/ai-assistant/AIAssistantPage';
 import { FacultyDashboard } from './features/dashboard/FacultyDashboard';
 import { FacultyAnalytics } from './pages/faculty/FacultyAnalytics';
 import { FacultyReports } from './pages/faculty/FacultyReports';
+import { StudentSearchPage } from './features/faculty/pages/StudentSearchPage';
+import { FacultyPredictionPage } from './features/faculty/pages/FacultyPredictionPage';
+import { FacultyAIAssistant } from './features/ai-assistant/FacultyAIAssistant';
 
 // Admin Pages
 import { AdminDashboard } from './pages/admin/AdminDashboard';
@@ -75,10 +78,11 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={[UserRole.FACULTY, UserRole.SUPER_ADMIN]} />}>
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<FacultyDashboard />} />
-            <Route path="/prediction" element={<div className="p-8 text-center text-gray-500">Prediction — Coming in Phase 7</div>} />
+            <Route path="/faculty/students" element={<StudentSearchPage />} />
+            <Route path="/prediction" element={<FacultyPredictionPage />} />
             <Route path="/analytics" element={<FacultyAnalytics />} />
             <Route path="/reports" element={<FacultyReports />} />
-            <Route path="/assistant" element={<div className="p-8 text-center text-gray-500">AI Assistant — Coming in Phase 7</div>} />
+            <Route path="/assistant" element={<FacultyAIAssistant />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<div className="p-8 text-center text-gray-500">Settings — Coming in Phase 7</div>} />
           </Route>

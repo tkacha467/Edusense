@@ -116,7 +116,7 @@ export const KnowledgeHealth: React.FC = () => {
               }}
               labelStyle={{ fontSize: '11px', fontWeight: 600, color: '#1e293b' }}
               itemStyle={{ fontSize: '12px', padding: '2px 0' }}
-              formatter={(value: any, name: string) => [
+              formatter={(value: any, name: any) => [
                 `${(Number(value) * 100).toFixed(1)}%`,
                 name === 'avg_retention' ? 'Avg Retention' : 'Avg Forget Prob'
               ]}

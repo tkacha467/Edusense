@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Role } from '../../../types';
+import type { UserRoleType as Role } from '../../../types';
 
 interface RoleHeaderProps {
   title: string;

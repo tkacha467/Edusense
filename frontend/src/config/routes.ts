@@ -29,6 +29,9 @@ export const ROUTES = {
   
   // Faculty protected
   FACULTY_DASHBOARD: '/dashboard',
+  FACULTY_PREDICTION: '/prediction',
+  FACULTY_STUDENTS: '/faculty/students',
+  FACULTY_ASSISTANT: '/assistant',
   FACULTY_PROFILE: '/profile',
   
   // Error

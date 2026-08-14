@@ -386,7 +386,7 @@ export function AssessmentPage() {
       <AssessmentResult
         percentage={sessionDetails.percentage || 0}
         totalQuestions={sessionDetails.total_questions || 0}
-        correctAnswers={sessionDetails.score || 0}
+        correctAnswers={(sessionDetails as any).score || (sessionDetails as any).scored_marks || 0}
         timeTakenSeconds={sessionDetails.time_taken_seconds || 0}
       />
     );
@@ -448,7 +448,7 @@ export function AssessmentPage() {
     const fakeQuestionIds = Array.from({ length: totalQ }).map((_, i) => 
       i < questionNumber ? (i === questionNumber - 1 ? activeQuestion.id : 'prev_q_' + i) : 'future_q_' + i
     );
-    const fakeResponses = Array.from({ length: questionNumber - 1 }).reduce((acc: any, _, i) => {
+    const fakeResponses: Record<string, string> = Array.from({ length: questionNumber - 1 }).reduce((acc: Record<string, string>, _, i) => {
       acc['prev_q_' + i] = 'answered';
       return acc;
     }, {});

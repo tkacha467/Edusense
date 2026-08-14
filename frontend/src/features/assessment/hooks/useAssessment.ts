@@ -20,7 +20,7 @@ export function useAssessment(sessionId?: string) {
       subjectId: data.subjectId,
       totalQuestions: data.totalQuestions || 5,
       topicId: data.topicId,
-      difficulty: data.difficulty || 'adaptive'
+      difficulty: (data.difficulty as any) || 'adaptive'
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assessmentSession'] });

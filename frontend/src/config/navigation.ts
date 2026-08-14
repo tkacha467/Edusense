@@ -8,6 +8,8 @@ import {
   BookOpen,
   Target,
   User,
+  Users,
+  Sparkles,
   Settings,
   type LucideIcon,
 } from 'lucide-react';
@@ -27,6 +29,9 @@ export const STUDENT_NAV_ITEMS: NavItem[] = [
 
 export const FACULTY_NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', path: ROUTES.FACULTY_DASHBOARD, icon: LayoutDashboard },
+  { label: 'Decay Prediction', path: ROUTES.FACULTY_PREDICTION, icon: BrainCircuit },
+  { label: 'Student Analytics', path: ROUTES.FACULTY_STUDENTS, icon: Users },
+  { label: 'AI Assistant', path: ROUTES.FACULTY_ASSISTANT, icon: Sparkles },
 ];
 
 export const FACULTY_SECONDARY_NAV: NavItem[] = [

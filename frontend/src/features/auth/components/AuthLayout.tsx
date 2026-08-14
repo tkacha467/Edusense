@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrainCircuit, BookOpen, Users } from 'lucide-react';
-import type { Role } from '../../../types';
+import type { UserRoleType as Role } from '../../../types';
 
 interface AuthLayoutProps {
   children: React.ReactNode;

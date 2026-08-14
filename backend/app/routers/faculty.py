@@ -126,3 +126,37 @@ def list_enrolled_students(
         "page_size": page_size,
         "total_pages": total_pages
     }
+
+
+@router.get("/analytics/overview")
+def get_faculty_class_overview(
+    subject_id: Optional[str] = Query(None, description="Optional subject filter"),
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+    faculty_service: FacultyService = Depends(get_faculty_service)
+) -> Any:
+    """
+    Fetch comprehensive class-wide analytics overview for faculty dashboard.
+    """
+    faculty_profile = faculty_service.get_profile_by_user_id(db, user_id=current_user.id)
+    return faculty_service.get_class_analytics_overview(
+        db=db,
+        faculty_id=faculty_profile.id,
+        subject_id=subject_id
+    )
+
+
+@router.get("/students/{student_id}/analytics")
+def get_student_deep_dive_analytics(
+    student_id: str,
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+    faculty_service: FacultyService = Depends(get_faculty_service)
+) -> Any:
+    """
+    Fetch deep-dive knowledge retention, decay forecasts, and recommendations for a single student.
+    """
+    return faculty_service.get_student_deep_dive_analytics(
+        db=db,
+        student_id=student_id
+    )
