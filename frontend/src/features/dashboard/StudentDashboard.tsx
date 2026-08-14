@@ -154,6 +154,14 @@ export function StudentDashboard() {
     .sort((a, b) => (b.forget_probability || 0) - (a.forget_probability || 0))
     .slice(0, 3);
 
+  const mostAtRiskSkill = weakSkills.length > 0
+    ? (weakSkills[0].skill?.name || `Skill ${weakSkills[0].skill_id.substring(0, 8)}`)
+    : 'None';
+  
+  const lastPredictionSync = hasProfiles && weakSkills[0].last_predicted_at
+    ? new Date(weakSkills[0].last_predicted_at).toLocaleString()
+    : 'N/A';
+
   // Predictions format for recharts
   const predictionTrend = assessmentHistory.length > 0
     ? [...assessmentHistory]
@@ -404,6 +412,14 @@ export function StudentDashboard() {
                       ? `${Math.round((knowledgeProfiles.reduce((acc, p) => acc + (p.forget_probability || 0), 0) / knowledgeProfiles.length) * 100)}%`
                       : 'N/A'}
                   </span>
+                </div>
+                <div className="flex justify-between items-center text-xs border-b pb-2">
+                  <span className="text-gray-400 font-medium">Most At Risk Skill</span>
+                  <span className="font-bold text-gray-900 text-right truncate max-w-[120px]" title={mostAtRiskSkill}>{mostAtRiskSkill}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs border-b pb-2">
+                  <span className="text-gray-400 font-medium">Last Prediction Sync</span>
+                  <span className="font-bold text-gray-900 text-right">{lastPredictionSync}</span>
                 </div>
                 <Button 
                   onClick={handleStartAssessment} 

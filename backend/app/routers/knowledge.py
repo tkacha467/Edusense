@@ -8,7 +8,7 @@ from app.core.enums import PredictionTrigger
 from app.dependencies.auth import get_current_user, require_onboarding_completed
 from app.dependencies.database import get_db
 from app.models.student import StudentProfile
-from app.schemas.knowledge import KnowledgeProfileResponse, PredictionHistoryResponse
+from app.schemas.knowledge import KnowledgeProfileResponse, PredictionHistoryResponse, KnowledgeHealthResponse
 from app.services.knowledge import KnowledgeDecayService
 
 router = APIRouter(prefix="/knowledge", tags=["Knowledge Decay ML Engine"])
@@ -87,3 +87,40 @@ def trigger_manual_prediction(
         triggered_by=PredictionTrigger.MANUAL
     )
     return updated_profile
+
+
+@router.get("/health", response_model=KnowledgeHealthResponse)
+def get_student_knowledge_health(
+    student_profile: StudentProfile = Depends(require_onboarding_completed),
+    db: Session = Depends(get_db),
+    knowledge_service: KnowledgeDecayService = Depends(get_knowledge_decay_service)
+) -> Any:
+    """
+    Calculate and return the student's overall Knowledge Health score based on calibrated forget probabilities.
+    """
+    profiles = knowledge_service.get_student_knowledge_profiles(db, student_id=student_profile.id)
+    if not profiles:
+        return {
+            "health_score": 100.0,
+            "rating": "Excellent",
+            "total_skills_tracked": 0
+        }
+        
+    total_retention = sum((1.0 - (p.forget_probability or 0.0)) for p in profiles)
+    avg_retention = total_retention / len(profiles)
+    health_score = round(avg_retention * 100, 2)
+    
+    if health_score >= 80:
+        rating = "Excellent" if health_score >= 90 else "Healthy"
+    elif health_score >= 60:
+        rating = "Needs Review"
+    elif health_score >= 40:
+        rating = "High Risk"
+    else:
+        rating = "Critical"
+        
+    return {
+        "health_score": health_score,
+        "rating": rating,
+        "total_skills_tracked": len(profiles)
+    }

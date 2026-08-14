@@ -89,3 +89,8 @@ class PredictionHistoryResponse(BaseResponse):
     model_version: str
     triggered_by: PredictionTrigger
     predicted_at: datetime
+
+class KnowledgeHealthResponse(PydanticBase):
+    health_score: float
+    rating: str
+    total_skills_tracked: int
