@@ -17,6 +17,7 @@ import { AssessmentHeader } from './components/AssessmentHeader';
 import { ProgressBar } from './components/ProgressBar';
 import { QuestionCard } from './components/QuestionCard';
 import { QuestionNavigator } from './components/QuestionNavigator';
+import { AssessmentResult } from './pages/AssessmentResult';
 
 export function AssessmentPage() {
   const navigate = useNavigate();
@@ -307,26 +308,14 @@ export function AssessmentPage() {
     );
   }
 
-  if (viewState === 'completed') {
+  if (viewState === 'completed' && sessionDetails) {
     return (
-      <div className="p-8 max-w-md mx-auto mt-12 animate-in zoom-in duration-300">
-        <Card className="border-emerald-200 bg-emerald-50 text-center shadow-lg">
-          <CardHeader className="flex flex-col items-center">
-            <CheckCircle2 className="w-12 h-12 text-emerald-600 mb-2" />
-            <CardTitle className="text-lg font-bold text-emerald-950">Assessment Completed</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-emerald-800">
-              This assessment session has already been evaluated and submitted.
-            </p>
-          </CardContent>
-          <CardFooter className="justify-center">
-            <Button onClick={() => navigate('/student/dashboard')} className="rounded-xl">
-              Return to Dashboard
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
+      <AssessmentResult
+        percentage={sessionDetails.percentage || 0}
+        totalQuestions={sessionDetails.total_questions || 0}
+        correctAnswers={sessionDetails.score || 0}
+        timeTakenSeconds={sessionDetails.time_taken_seconds || 0}
+      />
     );
   }
 
@@ -356,37 +345,12 @@ export function AssessmentPage() {
   // --- Step D: Results Screen ---
   if (viewState === 'results' && resultData) {
     return (
-      <div className="p-8 max-w-4xl mx-auto mt-8 animate-in slide-in-from-bottom-8 duration-500">
-        <Card className="overflow-hidden shadow-2xl border-0">
-          <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-10 text-center border-b flex flex-col items-center">
-            <Award className="w-16 h-16 text-primary mb-4" />
-            <h2 className="text-4xl font-black mb-2 text-primary">Score: {Math.round(resultData.percentage)}%</h2>
-            <p className="text-lg text-muted-foreground">{resultData.correct_answers} out of {resultData.total_questions} correct</p>
-          </div>
-          <CardContent className="p-8">
-            <h3 className="text-xl font-bold mb-4">AI Predictive Sync Completed</h3>
-            <ul className="space-y-4 text-muted-foreground">
-              <li className="flex items-start">
-                <CheckCircle2 className="w-6 h-6 mr-3 text-green-500 shrink-0" />
-                <span>Your student Knowledge Profile is updated instantly inside the database.</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle2 className="w-6 h-6 mr-3 text-green-500 shrink-0" />
-                <span>The forgetting curve half-life model has run inference on your submission accuracy.</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle2 className="w-6 h-6 mr-3 text-green-500 shrink-0" />
-                <span>New adaptive revision blocks are added to your study planner schedule.</span>
-              </li>
-            </ul>
-          </CardContent>
-          <CardFooter className="p-8 bg-muted/20 flex justify-end">
-            <Button size="lg" onClick={() => navigate('/student/dashboard')} className="rounded-full px-8">
-              Return to Dashboard <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
+      <AssessmentResult
+        percentage={resultData.percentage}
+        totalQuestions={resultData.total_questions}
+        correctAnswers={resultData.correct_answers}
+        timeTakenSeconds={resultData.time_taken_seconds}
+      />
     );
   }
 

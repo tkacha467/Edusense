@@ -67,6 +67,10 @@ async def generate_assessment_session(
     )
 
     # 3. Add questions & options to session in database
+    from app.models.learning import Skill
+    db_skill = db.query(Skill).first()
+    selected_skill_id = str(db_skill.id) if db_skill else "adca46c6-d4c4-4467-9904-a4b69919459d"
+
     questions_payload = []
     for idx, dto in enumerate(generated_dtos):
         diff_str = str(dto.get("difficulty_level", "MEDIUM")).upper()
@@ -79,6 +83,7 @@ async def generate_assessment_session(
 
         questions_payload.append({
             "topic_id": session_data.topic_id,
+            "skill_id": selected_skill_id,
             "question_text": dto.get("question_text"),
             "question_type": dto.get("question_type", "MCQ").upper() if dto.get("question_type") else "MCQ",
             "difficulty_level": mapped_diff,
@@ -163,38 +168,60 @@ def submit_assessment_session(
     Submit assessment responses, auto-evaluate correct answers, update student skill proficiency,
     and return evaluation result breakdown.
     """
-    responses_payload = [r.model_dump() for r in submission.responses]
-    result_data = assessment_service.submit_assessment(
-        db=db,
-        session_id=session_id,
-        student_id=student_profile.id,
-        responses=responses_payload
-    )
+    try:
+        responses_payload = [r.model_dump() for r in submission.responses]
+        result_data = assessment_service.submit_assessment(
+            db=db,
+            session_id=session_id,
+            student_id=student_profile.id,
+            responses=responses_payload
+        )
 
-    # Note: Event is dispatched in a BackgroundTask so it runs AFTER 
-    # the SQLAlchemy session commits the transaction at the end of the request.
-    from app.core.tasks import TaskDispatcher
-    from app.core.events import EventDispatcher
-    
-    dispatcher = TaskDispatcher(background_tasks)
-    dispatcher.dispatch(
-        EventDispatcher.publish,
-        "AssessmentCompleted",
-        db=db,
-        student_id=student_profile.id,
-        session_id=session_id,
-        skill_updates=result_data.pop("skill_updates", [])
-    )
+        # Run prediction, planner and timeline updates synchronously inside the transaction
+        from app.services.knowledge import KnowledgeDecayService
+        from app.services.adaptive.planner import RevisionPlanner
+        from app.services.adaptive.timeline import LearningTimelineService
 
-    return {
-        "assessment_session_id": session_id,
-        "total_questions": result_data["total_questions"],
-        "correct_answers": result_data["correct_answers"],
-        "scored_marks": result_data["scored_marks"],
-        "total_marks": result_data["total_marks"],
-        "percentage": result_data["percentage"],
-        "time_taken_seconds": result_data.get("time_taken_seconds", 0)
-    }
+        kd_service = KnowledgeDecayService()
+        skill_updates = result_data.pop("skill_updates", [])
+        for skill_id in skill_updates:
+            kd_service.run_prediction_pipeline(
+                db=db, 
+                student_id=student_profile.id, 
+                skill_id=skill_id
+            )
+
+        planner = RevisionPlanner()
+        planner.generate_adaptive_study_plan(
+            db=db, 
+            student_profile=student_profile
+        )
+
+        timeline_service = LearningTimelineService()
+        timeline_service.record_event(
+            db=db,
+            user_id=student_profile.user_id,
+            event_name="Assessment Completed",
+            entity_type="AssessmentSession",
+            entity_id=session_id,
+            details=f"Completed assessment and generated adaptive recommendations."
+        )
+
+        db.commit()
+        
+        return {
+            "assessment_session_id": session_id,
+            "total_questions": result_data["total_questions"],
+            "correct_answers": result_data["correct_answers"],
+            "scored_marks": result_data["scored_marks"],
+            "total_marks": result_data["total_marks"],
+            "percentage": result_data["percentage"],
+            "time_taken_seconds": result_data.get("time_taken_seconds", 0)
+        }
+    except Exception as e:
+        db.rollback()
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"Failed to submit assessment: {str(e)}")
 
 
 @router.get("/history", response_model=PaginatedResponse[AssessmentSessionResponse])
