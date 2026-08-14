@@ -15,7 +15,7 @@ from app.core.enums import UserStatus
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
 def register_user(
     user_data: UserCreate,
     authorization: str = Header(..., alias="Authorization"),
@@ -23,9 +23,8 @@ def register_user(
     user_service: UserService = Depends(get_user_service)
 ) -> Any:
     """
-    Synchronize a newly registered Firebase user into the database.
-    Automatically instantiates a linked StudentProfile or FacultyProfile
-    based on the assigned role.
+    Synchronize a newly registered Firebase user into the database and return authentication session context.
+    Automatically instantiates a linked StudentProfile or FacultyProfile based on the assigned role.
     """
     if not authorization.startswith("Bearer "):
         raise UnauthorizedException("Invalid token scheme. Expected 'Bearer <token>'.")
@@ -47,7 +46,23 @@ def register_user(
         institution_id=user_data.institution_id,
         department_id=user_data.department_id
     )
-    return user
+
+    profile_id = None
+    onboarding_completed = False
+    
+    if user.student_profile:
+        profile_id = user.student_profile.id
+        onboarding_completed = user.student_profile.onboarding_completed
+    elif user.faculty_profile:
+        profile_id = user.faculty_profile.id
+        onboarding_completed = True
+
+    return {
+        "user": UserResponse.model_validate(user),
+        "profile_id": profile_id,
+        "onboarding_completed": onboarding_completed,
+        "role": user.role
+    }
 
 
 @router.post("/login", response_model=Dict[str, Any])
@@ -86,11 +101,26 @@ def record_login(
     }
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me", response_model=Dict[str, Any])
 def get_current_user_info(
     current_user: User = Depends(get_current_user)
 ) -> Any:
     """
     Fetch identity details of the currently authenticated user.
     """
-    return current_user
+    profile_id = None
+    onboarding_completed = False
+    
+    if current_user.student_profile:
+        profile_id = current_user.student_profile.id
+        onboarding_completed = current_user.student_profile.onboarding_completed
+    elif current_user.faculty_profile:
+        profile_id = current_user.faculty_profile.id
+        onboarding_completed = True
+
+    return {
+        "user": UserResponse.model_validate(current_user),
+        "profile_id": profile_id,
+        "onboarding_completed": onboarding_completed,
+        "role": current_user.role
+    }

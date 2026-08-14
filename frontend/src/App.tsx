@@ -7,7 +7,6 @@ import { StudentLayout } from './layouts/StudentLayout';
 
 // Shared
 import { NotFound } from './pages/security/NotFound';
-import { VerifyEmail } from './pages/security/VerifyEmail';
 
 // Features - Auth
 import { LandingPage } from './features/auth/pages/LandingPage';
@@ -65,8 +64,6 @@ function App() {
           <Route path="/faculty/login" element={<FacultyLogin />} />
           <Route path="/faculty/signup" element={<FacultySignUp />} />
           <Route path="/faculty/forgot-password" element={<FacultyForgotPassword />} />
-
-          <Route path="/verify" element={<VerifyEmail />} />
         </Route>
         
         {/* Student Onboarding */}

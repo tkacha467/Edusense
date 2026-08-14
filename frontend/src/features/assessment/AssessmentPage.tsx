@@ -18,6 +18,7 @@ import { ProgressBar } from './components/ProgressBar';
 import { QuestionCard } from './components/QuestionCard';
 import { QuestionNavigator } from './components/QuestionNavigator';
 import { AssessmentResult } from './pages/AssessmentResult';
+import { assessmentApi } from './api/assessmentApi';
 
 export function AssessmentPage() {
   const navigate = useNavigate();
@@ -34,19 +35,35 @@ export function AssessmentPage() {
     paramSessionId ? 'loading_session' : (stateSubjectId ? 'landing' : 'subject_select')
   );
   
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [responses, setResponses] = useState<Record<string, string>>({});
+  const [activeQuestion, setActiveQuestion] = useState<any>(null);
+  const [questionNumber, setQuestionNumber] = useState<number>(1);
+  const [selectedOptionId, setSelectedOptionId] = useState<string>('');
+  const [isLoadingQuestion, setIsLoadingQuestion] = useState<boolean>(false);
+  const [isSubmittingAnswer, setIsSubmittingAnswer] = useState<boolean>(false);
   const [timeRemaining, setTimeRemaining] = useState(900); // 15 mins default
   const [resultData, setResultData] = useState<any>(null);
   const [reviewLater, setReviewLater] = useState<Record<string, boolean>>({});
 
   const { data: subjects, isLoading: isLoadingSubjects, error: subjectsError } = useSubjects();
-  const { questions, isLoadingQuestions, submitAssessment, getDraftResponses } = useAssessment(sessionId);
-  const cancelSessionMutation = useCancelSession();
-  const saveAnswerMutation = useSaveAnswer(sessionId || '');
-
-  // Load backend session details for route protection
   const { data: sessionDetails, isLoading: isLoadingSessionDetails } = useAssessmentSession(sessionId);
+  const { 
+    questions, 
+    isLoadingQuestions, 
+    questionsError, 
+    generateSession, 
+    startSession, 
+    submitAssessment, 
+    getDraftResponses 
+  } = useAssessment(sessionId);
+  const cancelSessionMutation = useCancelSession();
+
+  console.log("[AssessmentPage Render]", {
+    viewState,
+    sessionId,
+    activeQuestion: activeQuestion ? activeQuestion.id : null,
+    isLoadingQuestion,
+    sessionDetailsStatus: sessionDetails?.status
+  });
 
   // Set default subject if state has it
   useEffect(() => {
@@ -56,21 +73,51 @@ export function AssessmentPage() {
     }
   }, [stateSubjectId]);
 
-  // Restore draft answers from local storage
-  useEffect(() => {
-    if (sessionId) {
-      const drafts = getDraftResponses(sessionId);
-      if (Object.keys(drafts).length > 0) {
-        setResponses(drafts);
-        console.log(`[Session Recovery] Restored ${Object.keys(drafts).length} draft answers from storage.`);
+  const fetchNextQuestion = async () => {
+    if (!sessionId) return;
+    console.log("[AssessmentPage] fetchNextQuestion() invoked for sessionId:", sessionId);
+    setIsLoadingQuestion(true);
+    try {
+      const res = await assessmentApi.getNextQuestion(sessionId);
+      console.log("[AssessmentPage] GET /next RESPONSE:", res);
+      if (res.completed) {
+        console.log("[AssessmentPage] Session completed flag received from GET /next. Finishing session.");
+        const summary = await assessmentApi.finishAdaptiveSession(sessionId);
+        console.log("[AssessmentPage] Summary result loaded:", summary);
+        setResultData(summary);
+        setViewState('results');
+      } else {
+        console.log("[AssessmentPage] ACTIVE QUESTION SET:", res.question);
+        setActiveQuestion(res.question || null);
+        setQuestionNumber(res.question_number || 1);
+        setSelectedOptionId('');
       }
+    } catch (err) {
+      console.error("[AssessmentPage] Failed to load adaptive question:", err);
+    } finally {
+      setIsLoadingQuestion(false);
     }
-  }, [sessionId]);
+  };
+
+  // Load first question when session is active
+  useEffect(() => {
+    if (viewState === 'in_progress' && sessionId && !activeQuestion && !isLoadingQuestion) {
+      console.log("[AssessmentPage] useEffect triggering fetchNextQuestion()");
+      fetchNextQuestion();
+    }
+  }, [viewState, sessionId]);
+
+  const parseUtcDate = (dateStr?: string | null): number => {
+    if (!dateStr) return Date.now();
+    const normalized = (dateStr.endsWith('Z') || dateStr.includes('+')) ? dateStr : dateStr + 'Z';
+    const parsed = new Date(normalized).getTime();
+    return isNaN(parsed) ? Date.now() : parsed;
+  };
 
   // Timer calculation from started_at
   useEffect(() => {
     if (sessionDetails && sessionDetails.started_at && viewState === 'in_progress') {
-      const startTime = new Date(sessionDetails.started_at).getTime();
+      const startTime = parseUtcDate(sessionDetails.started_at);
       const limit = (sessionDetails.time_limit_seconds || 900) * 1000;
       
       const updateTimer = () => {
@@ -78,8 +125,8 @@ export function AssessmentPage() {
         const remaining = Math.max(0, Math.floor((limit - elapsed) / 1000));
         setTimeRemaining(remaining);
         
-        if (remaining === 0) {
-          console.warn("[Timer Expiry] Assessment limit reached. Autosubmitting responses.");
+        if (remaining === 0 && elapsed >= limit) {
+          console.warn("[Timer Expiry] Assessment limit reached. Concluding session.");
           handleFinalSubmit();
         }
       };
@@ -93,19 +140,33 @@ export function AssessmentPage() {
   // Route & Session ownership validation
   useEffect(() => {
     if (sessionId && sessionDetails && currentUser) {
+      const studentProfileId = currentUser.profileId || currentUser.id;
+      console.log("[AssessmentPage] Route Protection Evaluating:", {
+        sessionStudentId: sessionDetails.student_id,
+        currentUserId: currentUser.id,
+        currentUserProfileId: currentUser.profileId,
+        currentUserIdField: currentUser.userId,
+        sessionStatus: sessionDetails.status
+      });
+
       // 1. Ownership validation
-      if (sessionDetails.student_id !== currentUser.id) {
-        console.error("[Route Protection] Unauthorized: student does not own this session.");
+      const isOwner = sessionDetails.student_id === currentUser.id || 
+                      (currentUser.profileId && sessionDetails.student_id === currentUser.profileId);
+
+      if (!isOwner) {
+        console.error(`[Route Protection] Unauthorized: session student_id (${sessionDetails.student_id}) does not match student profile (${studentProfileId}) or user id (${currentUser.id}).`);
         setViewState('forbidden');
         return;
       }
 
       // 2. Status validation
       if (sessionDetails.status === 'completed') {
+        console.log("[AssessmentPage] Session status is completed. Setting viewState to completed.");
         setViewState('completed');
         return;
       }
       if (sessionDetails.status === 'abandoned') {
+        console.log("[AssessmentPage] Session status is abandoned. Setting viewState to cancelled.");
         setViewState('cancelled');
         return;
       }
@@ -117,26 +178,22 @@ export function AssessmentPage() {
 
   const handleStart = async () => {
     if (!selectedSubjectId) return;
+    console.log("[AssessmentPage] handleStart CLICKED with subjectId:", selectedSubjectId);
     setViewState('loading_session');
     try {
-      // Create session
-      const session = await submitAssessment.mutateAsync({ sessionId: '', responses: [] }); // Stub, handled in dashboard now
+      // 1. Create and start adaptive assessment session
+      const session = await assessmentApi.startAdaptiveSession(selectedSubjectId, 5);
+      console.log("[AssessmentPage] SESSION CREATED & STARTED:", session);
+      setSessionId(session.id);
+      setViewState('in_progress');
     } catch (err) {
-      console.error("Failed to start assessment:", err);
+      console.error("[AssessmentPage] Failed to start assessment:", err);
       setViewState('landing');
     }
   };
 
   const handleOptionSelect = (questionId: string, optionId: string) => {
-    // 1. Update state
-    setResponses((prev) => ({ ...prev, [questionId]: optionId }));
-    
-    // 2. Sync / Autosave to storage & query cache
-    saveAnswerMutation.mutate({
-      question_id: questionId,
-      selected_option_id: optionId,
-      time_taken_seconds: 15
-    });
+    setSelectedOptionId(optionId);
   };
 
   const toggleReviewLater = (questionId: string) => {
@@ -147,17 +204,33 @@ export function AssessmentPage() {
     if (!sessionId) return;
     setViewState('submitting');
     try {
-      const payload = Object.entries(responses).map(([qId, optId]) => ({
-        question_id: qId,
-        selected_option_id: optId,
-        time_taken_seconds: 15
-      }));
-      const result = await submitAssessment.mutateAsync({ sessionId, responses: payload });
+      const result = await assessmentApi.finishAdaptiveSession(sessionId);
       setResultData(result);
       setViewState('results');
     } catch (err) {
-      console.error("Failed to submit assessment:", err);
-      setViewState('in_progress'); // Fallback
+      console.error("Failed to finish assessment:", err);
+      setViewState('in_progress');
+    }
+  };
+
+  const handleAdaptiveAnswerSubmit = async () => {
+    if (!sessionId || !activeQuestion || !selectedOptionId) return;
+    setIsSubmittingAnswer(true);
+    try {
+      // 1. Submit current answer to backend
+      await assessmentApi.submitSingleAnswer(
+        sessionId,
+        activeQuestion.id,
+        selectedOptionId,
+        15
+      );
+      
+      // 2. Fetch the next question
+      await fetchNextQuestion();
+    } catch (err) {
+      console.error("Failed to submit adaptive answer:", err);
+    } finally {
+      setIsSubmittingAnswer(false);
     }
   };
 
@@ -355,12 +428,33 @@ export function AssessmentPage() {
   }
 
   // --- Step E: Test In Progress ---
-  if (viewState === 'in_progress' && questions && questions.length > 0) {
-    const currentQ = questions[currentQuestionIndex];
-    const isLastQuestion = currentQuestionIndex === questions.length - 1;
-    const allAnswered = questions.every((q: any) => responses[q.id]);
-    const isMarkedReview = !!reviewLater[currentQ.id];
-    const questionIds = questions.map((q: any) => q.id);
+  if (viewState === 'in_progress') {
+    if (isLoadingQuestion || !activeQuestion) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+          <Loader2 className="w-12 h-12 animate-spin text-primary" />
+          <h2 className="text-xl font-medium animate-pulse text-muted-foreground">
+            Formulating next optimal adaptive evaluation question...
+          </h2>
+        </div>
+      );
+    }
+
+    const totalQ = sessionDetails?.total_questions || 5;
+    const isLastQuestion = questionNumber === totalQ;
+    const isMarkedReview = !!reviewLater[activeQuestion.id];
+    
+    // Simulate palette responses for components
+    const fakeQuestionIds = Array.from({ length: totalQ }).map((_, i) => 
+      i < questionNumber ? (i === questionNumber - 1 ? activeQuestion.id : 'prev_q_' + i) : 'future_q_' + i
+    );
+    const fakeResponses = Array.from({ length: questionNumber - 1 }).reduce((acc: any, _, i) => {
+      acc['prev_q_' + i] = 'answered';
+      return acc;
+    }, {});
+    if (selectedOptionId) {
+      fakeResponses[activeQuestion.id] = selectedOptionId;
+    }
 
     return (
       <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
@@ -374,19 +468,19 @@ export function AssessmentPage() {
 
         {/* Progress Tracker */}
         <ProgressBar
-          current={Object.keys(responses).length}
-          total={questions.length}
+          current={questionNumber - 1 + (selectedOptionId ? 1 : 0)}
+          total={totalQ}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Main Question Display */}
           <div className="md:col-span-3 flex flex-col space-y-6">
             <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-150">
-              <span className="text-sm font-bold text-gray-700">Question {currentQuestionIndex + 1} of {questions.length}</span>
+              <span className="text-sm font-bold text-gray-700">Question {questionNumber} of {totalQ}</span>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => toggleReviewLater(currentQ.id)}
+                onClick={() => toggleReviewLater(activeQuestion.id)}
                 className={`rounded-xl shrink-0 ${isMarkedReview ? 'text-amber-700 bg-amber-50 border border-amber-200' : 'text-gray-400'}`}
               >
                 <AlertTriangle className="w-4 h-4 mr-1.5" />
@@ -395,54 +489,34 @@ export function AssessmentPage() {
             </div>
 
             <QuestionCard
-              question={currentQ as any}
-              selectedOptionId={responses[currentQ.id]}
-              onOptionSelect={(optId) => handleOptionSelect(currentQ.id, optId)}
+              question={activeQuestion}
+              selectedOptionId={selectedOptionId}
+              onOptionSelect={(optId) => handleOptionSelect(activeQuestion.id, optId)}
             />
 
             {/* Navigation Buttons */}
-            <div className="flex justify-between items-center pt-4 border-t">
+            <div className="flex justify-end items-center pt-4 border-t">
               <Button 
-                variant="outline" 
-                size="lg"
-                disabled={currentQuestionIndex === 0} 
-                onClick={() => setCurrentQuestionIndex(prev => prev - 1)}
-                className="px-6 rounded-xl text-sm"
+                size="lg" 
+                onClick={handleAdaptiveAnswerSubmit} 
+                disabled={!selectedOptionId || isSubmittingAnswer}
+                className="px-8 rounded-xl shadow-lg hover:shadow-primary/20 text-sm font-bold"
               >
-                <ArrowLeft className="mr-2 w-4 h-4" /> Previous
+                {isSubmittingAnswer ? 'Submitting...' : (isLastQuestion ? 'Submit & Finish' : 'Submit & Next')} 
+                <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
-              
-              {isLastQuestion ? (
-                <Button 
-                  size="lg" 
-                  onClick={handleFinalSubmit} 
-                  disabled={!allAnswered || submitAssessment.isPending}
-                  className="px-8 rounded-xl shadow-lg hover:shadow-primary/20 text-sm font-bold"
-                >
-                  {submitAssessment.isPending ? 'Submitting...' : 'Submit Assessment'} 
-                  <CheckCircle2 className="ml-2 w-4 h-4" />
-                </Button>
-              ) : (
-                <Button 
-                  size="lg" 
-                  onClick={() => setCurrentQuestionIndex(prev => prev + 1)}
-                  className="px-6 rounded-xl text-sm"
-                >
-                  Next <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-              )}
             </div>
           </div>
 
           {/* Sidebar Palette Navigation */}
           <div className="md:col-span-1">
             <QuestionNavigator
-              totalQuestions={questions.length}
-              currentIndex={currentQuestionIndex}
-              responses={responses}
-              questionIds={questionIds}
+              totalQuestions={totalQ}
+              currentIndex={questionNumber - 1}
+              responses={fakeResponses}
+              questionIds={fakeQuestionIds}
               reviewLater={reviewLater}
-              onJump={(idx) => setCurrentQuestionIndex(idx)}
+              onJump={() => {}} // Disabled jumping in adaptive assessments to enforce selection sequence
             />
           </div>
         </div>

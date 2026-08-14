@@ -114,6 +114,8 @@ class AssessmentService:
             
             for opt_data in options_data:
                 opt_data["question_id"] = question.id
+                if "is_correct" not in opt_data or opt_data["is_correct"] is None:
+                    opt_data["is_correct"] = bool(opt_data.get("option_label") == question.correct_answer)
                 self.option_repo.create(db, obj_in=opt_data)
                 
         return created_questions

@@ -23,17 +23,8 @@ export const assessmentSessionApi = {
   },
 
   getSession: async (sessionId: string): Promise<AssessmentSession> => {
-    // Audit Note: Direct GET /assessments/{id} does not exist in backend.
-    // Bypassing by fetching session history and finding the matching session id.
-    const response = await apiClient.get<any>('/assessments/history', {
-      params: { page: 1, page_size: 100 }
-    });
-    const items = response.data?.items || response.data || [];
-    const found = items.find((item: any) => item.id === sessionId);
-    if (!found) {
-      throw new Error(`Assessment session '${sessionId}' not found in history.`);
-    }
-    return found;
+    const response = await apiClient.get<AssessmentSession>(`/assessments/${sessionId}`);
+    return response.data;
   },
 
   getCurrentSession: async (): Promise<AssessmentSession | null> => {

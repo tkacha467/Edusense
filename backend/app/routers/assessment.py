@@ -12,17 +12,20 @@ from app.models.student import StudentProfile
 from app.schemas.assessment import (
     AssessmentSessionCreate, AssessmentSessionResponse,
     QuestionOptionPublic, QuestionResponse,
-    AssessmentSubmission, AssessmentResult
+    AssessmentSubmission, AssessmentResult,
+    AdaptiveStartInput, SubmitSingleAnswerInput
 )
 from app.schemas.base import PaginatedResponse
 from app.services.assessment import AssessmentService
 from app.services.learning import SubjectService, TopicService
+from app.services.adaptive.assessment_orchestrator import AssessmentOrchestrator
 
 router = APIRouter(prefix="/assessments", tags=["Assessment Engine"])
 
 def get_assessment_service() -> AssessmentService: return AssessmentService()
 def get_subject_service() -> SubjectService: return SubjectService()
 def get_topic_service() -> TopicService: return TopicService()
+def get_orchestrator() -> AssessmentOrchestrator: return AssessmentOrchestrator()
 
 
 @router.post("/generate", response_model=AssessmentSessionResponse, status_code=status.HTTP_201_CREATED)
@@ -102,6 +105,46 @@ async def generate_assessment_session(
     # Reload session with questions
     updated_session = assessment_service.get_assessment_detail(db, session_id=session.id)
     return updated_session
+
+
+@router.get("/history", response_model=PaginatedResponse[AssessmentSessionResponse])
+def get_student_assessment_history(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    student_profile: StudentProfile = Depends(require_onboarding_completed),
+    db: Session = Depends(get_db),
+    assessment_service: AssessmentService = Depends(get_assessment_service)
+) -> Any:
+    """
+    Fetch paginated assessment session history for the logged-in student.
+    """
+    history, total = assessment_service.get_assessment_history(
+        db=db,
+        student_id=student_profile.id,
+        page=page,
+        page_size=page_size
+    )
+    return {
+        "items": [AssessmentSessionResponse.model_validate(h) for h in history],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": (total + page_size - 1) // page_size if total > 0 else 0
+    }
+
+
+@router.get("/{session_id}", response_model=AssessmentSessionResponse)
+def get_assessment_session_by_id(
+    session_id: str,
+    student_profile: StudentProfile = Depends(require_onboarding_completed),
+    db: Session = Depends(get_db),
+    assessment_service: AssessmentService = Depends(get_assessment_service)
+) -> Any:
+    """
+    Fetch full details for a specific assessment session by session_id.
+    """
+    session = assessment_service.get_assessment_detail(db, session_id=session_id, student_id=student_profile.id)
+    return session
 
 
 @router.post("/{session_id}/start", response_model=AssessmentSessionResponse)
@@ -265,3 +308,154 @@ def abandon_assessment_session(
     """
     session = assessment_service.abandon_assessment(db, session_id=session_id, student_id=student_profile.id)
     return session
+
+
+@router.post("/start", response_model=AssessmentSessionResponse, status_code=status.HTTP_201_CREATED)
+def start_adaptive_assessment(
+    input_data: AdaptiveStartInput,
+    student_profile: StudentProfile = Depends(require_onboarding_completed),
+    db: Session = Depends(get_db),
+    orchestrator: AssessmentOrchestrator = Depends(get_orchestrator)
+) -> Any:
+    """
+    Start a dynamic, adaptive assessment session for a student.
+    """
+    session = orchestrator.start_adaptive_session(
+        db=db,
+        student_id=student_profile.id,
+        subject_id=input_data.subject_id,
+        title=input_data.title,
+        total_questions=input_data.total_questions
+    )
+    db.commit()
+    return session
+
+
+@router.get("/{session_id}/next")
+async def get_adaptive_next_question(
+    session_id: str,
+    student_profile: StudentProfile = Depends(require_onboarding_completed),
+    db: Session = Depends(get_db),
+    orchestrator: AssessmentOrchestrator = Depends(get_orchestrator)
+) -> Any:
+    """
+    Dynamically retrieve or generate the next question in an active adaptive session.
+    """
+    res = await orchestrator.get_or_generate_next_question(
+        db=db,
+        session_id=session_id,
+        student_id=student_profile.id
+    )
+    if not res:
+        return {"completed": True}
+        
+    question, q_num = res
+    db.commit()
+    
+    return {
+        "completed": False,
+        "question_number": q_num,
+        "question": {
+            "id": str(question.id),
+            "question_text": question.question_text,
+            "question_type": question.question_type,
+            "difficulty_level": question.difficulty_level,
+            "marks": question.marks,
+            "hint": question.hint,
+            "options": [
+                {
+                    "id": str(opt.id),
+                    "option_label": opt.option_label,
+                    "option_text": opt.option_text,
+                    "order_index": opt.order_index
+                } for opt in question.options
+            ]
+        }
+    }
+
+
+@router.post("/{session_id}/answer")
+def submit_adaptive_answer(
+    session_id: str,
+    input_data: SubmitSingleAnswerInput,
+    student_profile: StudentProfile = Depends(require_onboarding_completed),
+    db: Session = Depends(get_db),
+    orchestrator: AssessmentOrchestrator = Depends(get_orchestrator)
+) -> Any:
+    """
+    Submit a single response, evaluate correctness, and dynamically update profiles/forgetting probability in real-time.
+    """
+    try:
+        evaluation = orchestrator.submit_single_answer(
+            db=db,
+            session_id=session_id,
+            student_id=student_profile.id,
+            question_id=input_data.question_id,
+            selected_option_id=input_data.selected_option_id,
+            time_taken_seconds=input_data.time_taken_seconds
+        )
+        db.commit()
+        return evaluation
+    except Exception as e:
+        db.rollback()
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{session_id}/finish")
+def finish_adaptive_session(
+    session_id: str,
+    student_profile: StudentProfile = Depends(require_onboarding_completed),
+    db: Session = Depends(get_db),
+    orchestrator: AssessmentOrchestrator = Depends(get_orchestrator)
+) -> Any:
+    """
+    Explicitly conclude the adaptive test session and compile the summary report.
+    """
+    try:
+        result = orchestrator.finish_session(
+            db=db,
+            session_id=session_id,
+            student_id=student_profile.id
+        )
+        db.commit()
+        return result
+    except Exception as e:
+        db.rollback()
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{session_id}/summary")
+def get_adaptive_session_summary(
+    session_id: str,
+    student_profile: StudentProfile = Depends(require_onboarding_completed),
+    db: Session = Depends(get_db),
+    orchestrator: AssessmentOrchestrator = Depends(get_orchestrator)
+) -> Any:
+    """
+    Fetch the results summary details for a completed assessment session.
+    """
+    session = orchestrator.session_repo.get_by_id(db, session_id)
+    if not session:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Session not found.")
+        
+    stmt_res = select(StudentResponse).where(StudentResponse.assessment_session_id == session_id)
+    responses = list(db.execute(stmt_res).scalars().all())
+
+    total_questions = len(responses)
+    correct_count = sum(1 for r in responses if r.is_correct)
+    total_marks = sum(1.0 for r in responses)
+    scored_marks = sum(1.0 for r in responses if r.is_correct)
+    percentage = (scored_marks / total_marks * 100) if total_marks > 0 else 0.0
+
+    return {
+        "assessment_session_id": session_id,
+        "total_questions": total_questions,
+        "correct_answers": correct_count,
+        "scored_marks": scored_marks,
+        "total_marks": total_marks,
+        "percentage": percentage,
+        "time_taken_seconds": sum(r.time_taken_seconds for r in responses)
+    }

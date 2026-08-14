@@ -62,9 +62,10 @@ export function StudentDashboard() {
       // 3. Navigate to /student/assessment/:sessionId
       console.log(`[Assessment Entry] Navigating to /student/assessment/${session.id}`);
       navigate(`/student/assessment/${session.id}`);
-    } catch (err) {
+    } catch (err: any) {
       console.error("[Assessment Entry] Error initializing assessment session:", err);
-      showToast('Failed to start assessment. Please check your network connection.', 'error');
+      const detailMsg = err?.response?.data?.detail || err?.message || 'Failed to start assessment.';
+      showToast(detailMsg, 'error');
     } finally {
       setIsInitializingSession(false);
     }

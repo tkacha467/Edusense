@@ -19,7 +19,6 @@ export const ROUTES = {
   FACULTY_FORGOT_PASSWORD: '/faculty/forgot-password',
 
   // Shared auth
-  VERIFY_EMAIL: '/verify',
   
   // Student protected
   ONBOARDING: '/onboarding',
