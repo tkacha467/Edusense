@@ -13,6 +13,8 @@ import { useToast } from '../../contexts/ToastContext';
 import { useDashboard } from './hooks/useDashboard';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useNavigate } from 'react-router-dom';
+import { useSubjects } from '../learning/hooks/useLearning';
+import { useAssessment } from '../assessment/hooks/useAssessment';
 
 export function StudentDashboard() {
   const { currentUser } = useAuth();
@@ -20,6 +22,50 @@ export function StudentDashboard() {
   const navigate = useNavigate();
   
   const { data: dashboardData, isLoading, error } = useDashboard();
+  const [isInitializingSession, setIsInitializingSession] = React.useState(false);
+  const { data: subjects } = useSubjects();
+  const { generateSession, startSession } = useAssessment();
+
+  const handleStartAssessment = async () => {
+    if (isInitializingSession) return;
+    setIsInitializingSession(true);
+    console.log("[Assessment Entry] Clicked Begin/Start Assessment");
+    
+    try {
+      const subjectId = subjects && subjects.length > 0 ? subjects[0].id : null;
+      if (!subjectId) {
+        console.error("[Assessment Entry] No subjects found in database.");
+        showToast('No subjects available. Please enroll in a course first.', 'error');
+        setIsInitializingSession(false);
+        return;
+      }
+      
+      console.log(`[Assessment Entry] Creating assessment session for subject: ${subjectId}`);
+      showToast('Generating personalized assessment session...', 'info');
+      
+      // 1. POST /assessments/generate
+      const session = await generateSession.mutateAsync({ 
+        subjectId, 
+        totalQuestions: 5 
+      });
+      console.log("[Assessment Entry] Session generated successfully:", session.id);
+      
+      // 2. POST /assessments/{session_id}/start
+      await startSession.mutateAsync(session.id);
+      console.log("[Assessment Entry] Session started successfully");
+      
+      showToast('Assessment session initialized!', 'success');
+      
+      // 3. Navigate to /student/assessment/:sessionId
+      console.log(`[Assessment Entry] Navigating to /student/assessment/${session.id}`);
+      navigate(`/student/assessment/${session.id}`);
+    } catch (err) {
+      console.error("[Assessment Entry] Error initializing assessment session:", err);
+      showToast('Failed to start assessment. Please check your network connection.', 'error');
+    } finally {
+      setIsInitializingSession(false);
+    }
+  };
 
   if (!currentUser || currentUser.role !== 'student') return null;
 
@@ -179,8 +225,16 @@ export function StudentDashboard() {
                 Take your first adaptive learning assessment to establish your neural baseline. EduSense AI will construct a personalized study schedule immediately.
               </p>
             </div>
-            <Button onClick={() => navigate('/student/assessment')} className="rounded-full px-8 py-5 h-auto text-base font-bold shadow-lg hover:shadow-primary/20">
-              <PlayCircle className="w-5 h-5 mr-2" /> Start First Assessment
+            <Button 
+              onClick={handleStartAssessment} 
+              disabled={isInitializingSession} 
+              className="rounded-full px-8 py-5 h-auto text-base font-bold shadow-lg hover:shadow-primary/20"
+            >
+              {isInitializingSession ? (
+                <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Initializing Session...</>
+              ) : (
+                <><PlayCircle className="w-5 h-5 mr-2" /> Start First Assessment</>
+              )}
             </Button>
           </CardContent>
         </Card>
@@ -302,10 +356,12 @@ export function StudentDashboard() {
                   </span>
                 </div>
                 <Button 
-                  onClick={() => navigate('/student/assessment')} 
-                  className="w-full text-xs font-semibold"
+                  onClick={handleStartAssessment} 
+                  disabled={isInitializingSession}
+                  className="w-full text-xs font-semibold flex items-center justify-center gap-2"
                   variant="outline"
                 >
+                  {isInitializingSession && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Generate Evaluation Session
                 </Button>
               </CardContent>

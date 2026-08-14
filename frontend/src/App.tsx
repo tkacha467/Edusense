@@ -102,6 +102,7 @@ function App() {
             <Route path="/student/plan" element={<StudyPlan />} />
             <Route path="/student/profile" element={<Profile />} />
             <Route path="/student/assessment" element={<AssessmentPage />} />
+            <Route path="/student/assessment/:sessionId" element={<AssessmentPage />} />
             <Route path="/student/knowledge" element={<KnowledgeDecayPage />} />
             <Route path="/student/assistant" element={<AIAssistantPage />} />
             <Route path="/student/settings" element={<div className="p-8 text-center text-gray-500">Settings — Coming in Phase 7</div>} />

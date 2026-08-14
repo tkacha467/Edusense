@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAssessment } from './hooks/useAssessment';
 import { useSubjects } from '../learning/hooks/useLearning';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../../components/ui/Card';
 import { Loader2, CheckCircle2, Clock, AlertTriangle, ArrowRight, ArrowLeft, BookOpen, Award, FileText } from 'lucide-react';
@@ -9,14 +9,15 @@ import { Loader2, CheckCircle2, Clock, AlertTriangle, ArrowRight, ArrowLeft, Boo
 export function AssessmentPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { sessionId: paramSessionId } = useParams<{ sessionId?: string }>();
   
   // Try to read subjectId from route state
   const stateSubjectId = location.state?.subjectId;
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(stateSubjectId || '');
   
-  const [sessionId, setSessionId] = useState<string | undefined>(undefined);
+  const [sessionId, setSessionId] = useState<string | undefined>(paramSessionId);
   const [viewState, setViewState] = useState<'subject_select' | 'landing' | 'loading_session' | 'in_progress' | 'submitting' | 'results'>(
-    stateSubjectId ? 'landing' : 'subject_select'
+    paramSessionId ? 'in_progress' : (stateSubjectId ? 'landing' : 'subject_select')
   );
   
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
