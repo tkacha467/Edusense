@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { assessmentApi } from '../api/assessmentApi';
-import { AssessmentAnswer } from '../types/answer';
-import { AssessmentResult } from '../types/assessment';
+import type { AssessmentAnswer } from '../types/answer';
+import type { AssessmentResult } from '../types/assessment';
 
 export function useAssessment(sessionId?: string) {
   const queryClient = useQueryClient();

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { assessmentApi } from '../api/assessmentApi';
-import { Question } from '../types/question';
+import type { Question } from '../types/question';
 
 export function useQuestions(sessionId?: string) {
   return useQuery<Question[], Error>({

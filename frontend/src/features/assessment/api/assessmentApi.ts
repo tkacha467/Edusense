@@ -1,7 +1,7 @@
 import apiClient from '../../../api/apiClient';
-import { Question } from '../types/question';
-import { AssessmentAnswer } from '../types/answer';
-import { AssessmentResult } from '../types/assessment';
+import type { Question } from '../types/question';
+import type { AssessmentAnswer } from '../types/answer';
+import type { AssessmentResult } from '../types/assessment';
 
 export const assessmentApi = {
   getQuestions: async (sessionId: string): Promise<Question[]> => {
