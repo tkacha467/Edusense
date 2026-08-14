@@ -1,15 +1,15 @@
 """Dashboard repository module for executing database queries."""
 from datetime import datetime
 from typing import Dict, Any, List, Tuple, Optional
-from sqlalchemy import func, desc, asc, select, or_
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func, desc, asc, or_
+from sqlalchemy.orm import Session
 
 from app.models.user import User
 from app.models.faculty import FacultyProfile
 from app.models.student import StudentProfile
-from app.models.learning import Skill, Subject, Topic
+from app.models.learning import Skill, Subject
 from app.models.knowledge import KnowledgeProfile, PredictionHistory
-from app.models.recommendation import StudyTask, StudyPlan, TaskStatus, TaskPriority
+from app.models.recommendation import StudyTask, TaskStatus
 from app.models.analytics import StudentActivity
 
 

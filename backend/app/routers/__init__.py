@@ -13,7 +13,7 @@ from app.routers.notification import router as notification_router
 from app.routers.ai import router as ai_router
 from app.routers.rag import router as rag_router
 from app.routers.admin import router as admin_router
-from app.routers.dashboard import router as dashboard_router
+from app.dashboard.router import router as dashboard_router
 
 __all__ = [
     "auth_router",

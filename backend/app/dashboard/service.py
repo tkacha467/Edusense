@@ -1,10 +1,10 @@
 """Dashboard service module for orchestrating dashboard operations."""
 import math
-from typing import Dict, Any, List, Optional
+from typing import List, Optional
 from sqlalchemy.orm import Session
 
-from app.repositories.dashboard import DashboardRepository
-from app.schemas.dashboard import (
+from app.dashboard.repository import DashboardRepository
+from app.dashboard.schema import (
     ProfileSummaryResponse,
     DashboardSummaryResponse,
     KnowledgeHealthResponse,

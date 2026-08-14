@@ -3,10 +3,12 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
-from app.dependencies.auth import get_current_user, RequireFaculty
+from app.dependencies.auth import RequireFaculty
 from app.dependencies.database import get_db
 from app.models.user import User
-from app.schemas.dashboard import (
+from app.dashboard.dependencies import get_dashboard_service
+from app.dashboard.service import DashboardService
+from app.dashboard.schema import (
     ProfileSummaryResponse,
     DashboardSummaryResponse,
     KnowledgeHealthResponse,
@@ -14,14 +16,8 @@ from app.schemas.dashboard import (
     WeakSkillItem,
     RecentActivityItem,
 )
-from app.services.dashboard import DashboardService
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
-
-
-def get_dashboard_service() -> DashboardService:
-    """Dependency provider for DashboardService."""
-    return DashboardService()
 
 
 @router.get(
