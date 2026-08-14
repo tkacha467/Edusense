@@ -15,6 +15,7 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { useNavigate } from 'react-router-dom';
 import { useSubjects } from '../learning/hooks/useLearning';
 import { useAssessment } from '../assessment/hooks/useAssessment';
+import { useResumeSession, useCancelSession } from '../assessment/hooks/useAssessmentSession';
 
 export function StudentDashboard() {
   const { currentUser } = useAuth();
@@ -25,6 +26,8 @@ export function StudentDashboard() {
   const [isInitializingSession, setIsInitializingSession] = React.useState(false);
   const { data: subjects } = useSubjects();
   const { generateSession, startSession } = useAssessment();
+  const { data: activeSession, refetch: refetchActiveSession } = useResumeSession();
+  const cancelSessionMutation = useCancelSession();
 
   const handleStartAssessment = async () => {
     if (isInitializingSession) return;
@@ -64,6 +67,18 @@ export function StudentDashboard() {
       showToast('Failed to start assessment. Please check your network connection.', 'error');
     } finally {
       setIsInitializingSession(false);
+    }
+  };
+
+  const handleCancelActiveSession = async (sid: string) => {
+    try {
+      showToast('Abandoning active assessment...', 'info');
+      await cancelSessionMutation.mutateAsync(sid);
+      showToast('Active assessment abandoned successfully.', 'success');
+      refetchActiveSession();
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to abandon session.', 'error');
     }
   };
 
@@ -166,6 +181,41 @@ export function StudentDashboard() {
           </div>
         )}
       </div>
+
+      {/* Active Session Recovery Banner */}
+      {activeSession && (
+        <Card className="border-amber-200 bg-amber-50 shadow-md animate-in slide-in-from-top duration-300">
+          <CardContent className="p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-amber-100 p-2 rounded-lg text-amber-700 shrink-0">
+                <AlertTriangle className="w-5 h-5 text-amber-600 animate-pulse" />
+              </div>
+              <div>
+                <h4 className="font-bold text-amber-950 text-sm">Active Assessment in Progress</h4>
+                <p className="text-xs text-amber-900/80">You have an ongoing evaluation session. Please resume or abandon it to continue.</p>
+              </div>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => handleCancelActiveSession(activeSession.id)}
+                className="text-amber-800 hover:text-amber-900 border-amber-300 hover:bg-amber-100 rounded-lg text-xs"
+                disabled={cancelSessionMutation.isPending}
+              >
+                Abandon
+              </Button>
+              <Button 
+                size="sm" 
+                onClick={() => navigate(`/student/assessment/${activeSession.id}`)}
+                className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold text-xs px-4"
+              >
+                Resume Session
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Hero Section Metrics Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">

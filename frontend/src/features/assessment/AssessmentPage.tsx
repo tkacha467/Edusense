@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useAssessment } from './hooks/useAssessment';
 import { useSubjects } from '../learning/hooks/useLearning';
+import { useAssessmentSession, useCancelSession } from './hooks/useAssessmentSession';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../../components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../../components/ui/Card';
-import { Loader2, CheckCircle2, Clock, AlertTriangle, ArrowRight, ArrowLeft, BookOpen, Award, FileText } from 'lucide-react';
+import { 
+  Loader2, CheckCircle2, Clock, AlertTriangle, ArrowRight, 
+  ArrowLeft, BookOpen, Award, FileText, ShieldAlert, XCircle 
+} from 'lucide-react';
 
 export function AssessmentPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { currentUser } = useAuth();
   const { sessionId: paramSessionId } = useParams<{ sessionId?: string }>();
   
   // Try to read subjectId from route state
@@ -16,8 +22,8 @@ export function AssessmentPage() {
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(stateSubjectId || '');
   
   const [sessionId, setSessionId] = useState<string | undefined>(paramSessionId);
-  const [viewState, setViewState] = useState<'subject_select' | 'landing' | 'loading_session' | 'in_progress' | 'submitting' | 'results'>(
-    paramSessionId ? 'in_progress' : (stateSubjectId ? 'landing' : 'subject_select')
+  const [viewState, setViewState] = useState<'subject_select' | 'landing' | 'loading_session' | 'in_progress' | 'submitting' | 'results' | 'unauthorized' | 'forbidden' | 'expired' | 'completed' | 'cancelled'>(
+    paramSessionId ? 'loading_session' : (stateSubjectId ? 'landing' : 'subject_select')
   );
   
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -28,6 +34,10 @@ export function AssessmentPage() {
 
   const { data: subjects, isLoading: isLoadingSubjects, error: subjectsError } = useSubjects();
   const { generateSession, startSession, questions, isLoadingQuestions, submitAssessment } = useAssessment(sessionId);
+  const cancelSessionMutation = useCancelSession();
+
+  // Load backend session details for route protection
+  const { data: sessionDetails, isLoading: isLoadingSessionDetails, error: sessionDetailsError } = useAssessmentSession(sessionId);
 
   // Set default subject if state has it
   useEffect(() => {
@@ -36,6 +46,31 @@ export function AssessmentPage() {
       setViewState('landing');
     }
   }, [stateSubjectId]);
+
+  // Route & Session ownership validation
+  useEffect(() => {
+    if (sessionId && sessionDetails && currentUser) {
+      // 1. Ownership validation
+      if (sessionDetails.student_id !== currentUser.id) {
+        console.error("[Route Protection] Unauthorized: student does not own this session.");
+        setViewState('forbidden');
+        return;
+      }
+
+      // 2. Status validation
+      if (sessionDetails.status === 'completed') {
+        setViewState('completed');
+        return;
+      }
+      if (sessionDetails.status === 'abandoned') {
+        setViewState('cancelled');
+        return;
+      }
+
+      // If active and loaded, go in_progress
+      setViewState('in_progress');
+    }
+  }, [sessionId, sessionDetails, currentUser]);
 
   // Timer effect
   useEffect(() => {
@@ -197,13 +232,85 @@ export function AssessmentPage() {
   }
 
   // --- Step C: Loading / Submitting State ---
-  if (viewState === 'loading_session' || viewState === 'submitting' || isLoadingQuestions) {
+  if (viewState === 'loading_session' || viewState === 'submitting' || isLoadingQuestions || isLoadingSessionDetails) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
         <h2 className="text-xl font-medium animate-pulse text-muted-foreground">
-          {viewState === 'submitting' ? 'Evaluating responses & compiling predictive memory curve...' : 'Generating customized test via AI Gateway...'}
+          {viewState === 'submitting' 
+            ? 'Evaluating responses & compiling predictive memory curve...' 
+            : 'Verifying session context and retrieving question blocks...'}
         </h2>
+      </div>
+    );
+  }
+
+  // --- Route Protection States: Forbidden, Completed, Cancelled ---
+  if (viewState === 'forbidden') {
+    return (
+      <div className="p-8 max-w-md mx-auto mt-12 animate-in zoom-in duration-300">
+        <Card className="border-red-200 bg-red-50 text-center shadow-lg">
+          <CardHeader className="flex flex-col items-center">
+            <ShieldAlert className="w-12 h-12 text-red-600 mb-2" />
+            <CardTitle className="text-lg font-bold text-red-950">Access Denied</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-red-800">
+              This assessment session does not belong to your account.
+            </p>
+          </CardContent>
+          <CardFooter className="justify-center">
+            <Button onClick={() => navigate('/student/dashboard')} className="rounded-xl">
+              Return to Dashboard
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
+  if (viewState === 'completed') {
+    return (
+      <div className="p-8 max-w-md mx-auto mt-12 animate-in zoom-in duration-300">
+        <Card className="border-emerald-200 bg-emerald-50 text-center shadow-lg">
+          <CardHeader className="flex flex-col items-center">
+            <CheckCircle2 className="w-12 h-12 text-emerald-600 mb-2" />
+            <CardTitle className="text-lg font-bold text-emerald-950">Assessment Completed</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-emerald-800">
+              This assessment session has already been evaluated and submitted.
+            </p>
+          </CardContent>
+          <CardFooter className="justify-center">
+            <Button onClick={() => navigate('/student/dashboard')} className="rounded-xl">
+              Return to Dashboard
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
+  if (viewState === 'cancelled') {
+    return (
+      <div className="p-8 max-w-md mx-auto mt-12 animate-in zoom-in duration-300">
+        <Card className="border-gray-200 bg-gray-50 text-center shadow-lg">
+          <CardHeader className="flex flex-col items-center">
+            <XCircle className="w-12 h-12 text-gray-500 mb-2" />
+            <CardTitle className="text-lg font-bold text-gray-950">Session Cancelled</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-gray-500">
+              This assessment session was abandoned or cancelled.
+            </p>
+          </CardContent>
+          <CardFooter className="justify-center">
+            <Button onClick={() => navigate('/student/dashboard')} className="rounded-xl">
+              Start New Assessment
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
     );
   }
