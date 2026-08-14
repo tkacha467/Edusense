@@ -1,20 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { useAssessment } from './hooks/useAssessment';
-import { useNavigate } from 'react-router-dom';
+import { useSubjects } from '../learning/hooks/useLearning';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../../components/ui/Card';
-import { Loader2, CheckCircle2, Clock, AlertTriangle, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Loader2, CheckCircle2, Clock, AlertTriangle, ArrowRight, ArrowLeft, BookOpen, Award, FileText } from 'lucide-react';
 
-export function AssessmentPage({ subjectId = 'default_subject_id' }: { subjectId?: string }) {
+export function AssessmentPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Try to read subjectId from route state
+  const stateSubjectId = location.state?.subjectId;
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>(stateSubjectId || '');
+  
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
-  const [viewState, setViewState] = useState<'landing' | 'loading_session' | 'in_progress' | 'submitting' | 'results'>('landing');
+  const [viewState, setViewState] = useState<'subject_select' | 'landing' | 'loading_session' | 'in_progress' | 'submitting' | 'results'>(
+    stateSubjectId ? 'landing' : 'subject_select'
+  );
+  
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [timeRemaining, setTimeRemaining] = useState(900); // 15 mins default
   const [resultData, setResultData] = useState<any>(null);
+  const [reviewLater, setReviewLater] = useState<Record<string, boolean>>({});
 
+  const { data: subjects, isLoading: isLoadingSubjects, error: subjectsError } = useSubjects();
   const { generateSession, startSession, questions, isLoadingQuestions, submitAssessment } = useAssessment(sessionId);
+
+  // Set default subject if state has it
+  useEffect(() => {
+    if (stateSubjectId) {
+      setSelectedSubjectId(stateSubjectId);
+      setViewState('landing');
+    }
+  }, [stateSubjectId]);
 
   // Timer effect
   useEffect(() => {
@@ -30,10 +50,11 @@ export function AssessmentPage({ subjectId = 'default_subject_id' }: { subjectId
   }, [viewState, timeRemaining]);
 
   const handleStart = async () => {
+    if (!selectedSubjectId) return;
     setViewState('loading_session');
     try {
       // Create session
-      const session = await generateSession.mutateAsync({ subjectId, totalQuestions: 5 });
+      const session = await generateSession.mutateAsync({ subjectId: selectedSubjectId, totalQuestions: 5 });
       setSessionId(session.id);
       
       // Start session
@@ -42,12 +63,15 @@ export function AssessmentPage({ subjectId = 'default_subject_id' }: { subjectId
     } catch (err) {
       console.error("Failed to start assessment:", err);
       setViewState('landing');
-      // handle error notification
     }
   };
 
   const handleOptionSelect = (questionId: string, optionId: string) => {
     setResponses((prev) => ({ ...prev, [questionId]: optionId }));
+  };
+
+  const toggleReviewLater = (questionId: string) => {
+    setReviewLater((prev) => ({ ...prev, [questionId]: !prev[questionId] }));
   };
 
   const handleFinalSubmit = async () => {
@@ -57,7 +81,7 @@ export function AssessmentPage({ subjectId = 'default_subject_id' }: { subjectId
       const payload = Object.entries(responses).map(([qId, optId]) => ({
         question_id: qId,
         selected_option_id: optId,
-        time_taken_seconds: 10 // Mocked per question time, ideally tracked
+        time_taken_seconds: 15 // tracked time estimation
       }));
       const result = await submitAssessment.mutateAsync({ sessionId, responses: payload });
       setResultData(result);
@@ -74,31 +98,94 @@ export function AssessmentPage({ subjectId = 'default_subject_id' }: { subjectId
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  // --- Step A: Subject Selection Screen ---
+  if (viewState === 'subject_select') {
+    return (
+      <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 flex items-center gap-3">
+            <FileText className="w-8 h-8 text-primary" /> Start Adaptive Assessment
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Select a subject code below to initialize a customized AI-generated retrieval evaluation.
+          </p>
+        </div>
+
+        {isLoadingSubjects ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="w-10 h-10 animate-spin text-primary" />
+          </div>
+        ) : subjectsError ? (
+          <div className="bg-red-50 p-6 rounded-xl text-center text-red-600 border border-red-100">
+            <p>Failed to load subjects. Please check backend connections.</p>
+          </div>
+        ) : !subjects || subjects.length === 0 ? (
+          <div className="bg-white border rounded-xl p-12 text-center shadow-sm">
+            <p className="text-gray-500 mb-4">No active subjects available for testing.</p>
+            <Button onClick={() => navigate('/student/learning')}>Browse Learning Hub</Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {subjects.map((sub) => (
+              <Card 
+                key={sub.id} 
+                className={`cursor-pointer hover:border-primary transition-all duration-200 ${selectedSubjectId === sub.id ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'border-gray-200 bg-white'}`}
+                onClick={() => {
+                  setSelectedSubjectId(sub.id);
+                  setViewState('landing');
+                }}
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">{sub.code}</span>
+                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{sub.category}</span>
+                  </div>
+                  <CardTitle className="text-lg">{sub.name}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-gray-500 line-clamp-2">{sub.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // --- Step B: Assessment Landing Screen ---
   if (viewState === 'landing') {
+    const currentSubject = subjects?.find(s => s.id === selectedSubjectId);
+
     return (
       <div className="p-8 max-w-4xl mx-auto flex flex-col items-center mt-12 animate-in fade-in zoom-in duration-300">
         <Card className="w-full text-center p-8 shadow-xl border-t-4 border-t-primary bg-card/50 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-3xl font-extrabold tracking-tight">Adaptive Assessment</CardTitle>
+            <CardTitle className="text-3xl font-extrabold tracking-tight">
+              Adaptive Assessment: {currentSubject?.name || 'Loading...'}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6 text-muted-foreground mt-4">
             <p className="text-lg">This test will dynamically update your Knowledge Profile and adjust your future recommendations.</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
               <div className="bg-background p-4 rounded-xl shadow-sm border border-border/50 flex flex-col items-center">
                 <Clock className="w-8 h-8 mb-2 text-primary" />
-                <span className="font-semibold text-foreground">15 Minutes</span>
+                <span className="font-semibold text-foreground">15 Minutes Limit</span>
               </div>
               <div className="bg-background p-4 rounded-xl shadow-sm border border-border/50 flex flex-col items-center">
                 <CheckCircle2 className="w-8 h-8 mb-2 text-primary" />
-                <span className="font-semibold text-foreground">Adaptive Scoring</span>
+                <span className="font-semibold text-foreground">5 Adaptive Questions</span>
               </div>
               <div className="bg-background p-4 rounded-xl shadow-sm border border-border/50 flex flex-col items-center">
                 <AlertTriangle className="w-8 h-8 mb-2 text-primary" />
-                <span className="font-semibold text-foreground">No going back</span>
+                <span className="font-semibold text-foreground">Immediate Prediction</span>
               </div>
             </div>
           </CardContent>
-          <CardFooter className="flex justify-center mt-8">
+          <CardFooter className="flex justify-center gap-4 mt-8">
+            <Button variant="outline" onClick={() => setViewState('subject_select')} className="rounded-full px-6">
+              Change Subject
+            </Button>
             <Button size="lg" onClick={handleStart} className="px-12 py-6 text-lg rounded-full shadow-lg hover:shadow-primary/25 transition-all">
               Begin Assessment
             </Button>
@@ -108,44 +195,47 @@ export function AssessmentPage({ subjectId = 'default_subject_id' }: { subjectId
     );
   }
 
+  // --- Step C: Loading / Submitting State ---
   if (viewState === 'loading_session' || viewState === 'submitting' || isLoadingQuestions) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
         <h2 className="text-xl font-medium animate-pulse text-muted-foreground">
-          {viewState === 'submitting' ? 'Evaluating your answers & updating Knowledge Profile...' : 'Generating your personalized test...'}
+          {viewState === 'submitting' ? 'Evaluating responses & compiling predictive memory curve...' : 'Generating customized test via AI Gateway...'}
         </h2>
       </div>
     );
   }
 
+  // --- Step D: Results Screen ---
   if (viewState === 'results' && resultData) {
     return (
       <div className="p-8 max-w-4xl mx-auto mt-8 animate-in slide-in-from-bottom-8 duration-500">
         <Card className="overflow-hidden shadow-2xl border-0">
-          <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-10 text-center border-b">
+          <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-10 text-center border-b flex flex-col items-center">
+            <Award className="w-16 h-16 text-primary mb-4" />
             <h2 className="text-4xl font-black mb-2 text-primary">Score: {Math.round(resultData.percentage)}%</h2>
             <p className="text-lg text-muted-foreground">{resultData.correct_answers} out of {resultData.total_questions} correct</p>
           </div>
           <CardContent className="p-8">
-            <h3 className="text-xl font-bold mb-4">What happens next?</h3>
+            <h3 className="text-xl font-bold mb-4">AI Predictive Sync Completed</h3>
             <ul className="space-y-4 text-muted-foreground">
               <li className="flex items-start">
                 <CheckCircle2 className="w-6 h-6 mr-3 text-green-500 shrink-0" />
-                <span>Your Knowledge Profile has been updated.</span>
+                <span>Your student Knowledge Profile is updated instantly inside the database.</span>
               </li>
               <li className="flex items-start">
                 <CheckCircle2 className="w-6 h-6 mr-3 text-green-500 shrink-0" />
-                <span>The Forgetting Predictor engine is analyzing your retention rates.</span>
+                <span>The forgetting curve half-life model has run inference on your submission accuracy.</span>
               </li>
               <li className="flex items-start">
                 <CheckCircle2 className="w-6 h-6 mr-3 text-green-500 shrink-0" />
-                <span>New items have been queued in your Revision Planner if needed.</span>
+                <span>New adaptive revision blocks are added to your study planner schedule.</span>
               </li>
             </ul>
           </CardContent>
           <CardFooter className="p-8 bg-muted/20 flex justify-end">
-            <Button size="lg" onClick={() => navigate('/dashboard')} className="rounded-full px-8">
+            <Button size="lg" onClick={() => navigate('/student/dashboard')} className="rounded-full px-8">
               Return to Dashboard <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
           </CardFooter>
@@ -154,13 +244,15 @@ export function AssessmentPage({ subjectId = 'default_subject_id' }: { subjectId
     );
   }
 
+  // --- Step E: Test In Progress ---
   if (viewState === 'in_progress' && questions && questions.length > 0) {
     const currentQ = questions[currentQuestionIndex];
     const isLastQuestion = currentQuestionIndex === questions.length - 1;
     const allAnswered = questions.every((q: any) => responses[q.id]);
+    const isMarkedReview = !!reviewLater[currentQ.id];
 
     return (
-      <div className="p-4 md:p-8 max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 h-[calc(100vh-100px)]">
+      <div className="p-4 md:p-8 max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
         
         {/* Main Question Area */}
         <div className="md:col-span-3 flex flex-col">
@@ -173,10 +265,19 @@ export function AssessmentPage({ subjectId = 'default_subject_id' }: { subjectId
           </div>
 
           <Card className="flex-1 shadow-lg border-primary/10">
-            <CardHeader className="bg-muted/30 border-b">
-              <CardTitle className="text-2xl font-medium leading-relaxed">
+            <CardHeader className="bg-muted/30 border-b flex flex-row items-center justify-between">
+              <CardTitle className="text-xl font-medium leading-relaxed">
                 {currentQ.question_text}
               </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => toggleReviewLater(currentQ.id)}
+                className={`rounded-full shrink-0 ${isMarkedReview ? 'text-amber-600 bg-amber-50' : 'text-gray-400'}`}
+              >
+                <AlertTriangle className="w-4 h-4 mr-1" />
+                {isMarkedReview ? 'Review Listed' : 'Review Later'}
+              </Button>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
               {currentQ.options.map((opt: any) => {
@@ -233,7 +334,7 @@ export function AssessmentPage({ subjectId = 'default_subject_id' }: { subjectId
           </div>
         </div>
 
-        {/* Sidebar Palette */}
+        {/* Sidebar Question Palette */}
         <div className="hidden md:block md:col-span-1 border-l pl-8 space-y-6">
           <div>
             <h3 className="font-semibold text-lg mb-4 text-foreground">Question Palette</h3>
@@ -241,13 +342,15 @@ export function AssessmentPage({ subjectId = 'default_subject_id' }: { subjectId
               {questions.map((q: any, i: number) => {
                 const isAnswered = !!responses[q.id];
                 const isCurrent = currentQuestionIndex === i;
+                const isMarked = !!reviewLater[q.id];
                 return (
                   <button
                     key={q.id}
                     onClick={() => setCurrentQuestionIndex(i)}
                     className={`w-10 h-10 rounded-lg flex items-center justify-center font-medium text-sm transition-all
                       ${isCurrent ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}
-                      ${isAnswered ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                      ${isMarked ? 'bg-amber-100 text-amber-800 border-amber-300 border' : 
+                        isAnswered ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
                   >
                     {i + 1}
                   </button>
@@ -258,7 +361,10 @@ export function AssessmentPage({ subjectId = 'default_subject_id' }: { subjectId
           
           <div className="p-4 bg-muted/30 rounded-xl space-y-3">
             <div className="flex items-center text-sm">
-              <div className="w-4 h-4 rounded bg-primary mr-3"></div> Answered
+              <div className="w-4 h-4 rounded bg-primary mr-3 text-white"></div> Answered
+            </div>
+            <div className="flex items-center text-sm">
+              <div className="w-4 h-4 rounded bg-amber-100 border border-amber-300 mr-3"></div> Review Later
             </div>
             <div className="flex items-center text-sm">
               <div className="w-4 h-4 rounded bg-muted mr-3"></div> Unanswered

@@ -1,10 +1,10 @@
 import React from 'react';
+import { KnowledgeDecay } from './KnowledgeDecay';
 
 export function KnowledgeDecayPage() {
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold">Knowledge Decay</h1>
-      <p>This page is under construction.</p>
+    <div className="p-6 md:p-8 max-w-7xl mx-auto">
+      <KnowledgeDecay />
     </div>
   );
 }
