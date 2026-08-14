@@ -56,3 +56,14 @@ export const useRecentActivities = (limit: number = 10) => {
     staleTime: 60 * 1000,
   });
 };
+
+import { dashboardApi } from '../../../api/dashboardApi';
+import type { DashboardData } from '../../../api/dashboardApi';
+
+export function useDashboard() {
+  return useQuery<DashboardData, Error>({
+    queryKey: ['dashboardData'],
+    queryFn: dashboardApi.getDashboardData,
+    staleTime: 5 * 60 * 1000,
+  });
+}
