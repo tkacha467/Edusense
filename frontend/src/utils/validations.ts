@@ -58,7 +58,11 @@ export const otpSchema = z.object({
 });
 
 export const studentOnboardingSchema = z.object({
-  grade: z.string().min(1, 'Please select your grade level'),
-  schoolType: z.enum(['high_school', 'college', 'middle_school', 'other']),
-  skillsToTrack: z.array(z.string()).min(1, 'Please select at least one skill to track'),
+  grade: z.string().optional(),
+  schoolType: z.string().min(1, 'Please select your education type'),
+  degreeLevel: z.string().optional(),
+  stream: z.string().optional(),
+  selectedSubjectId: z.string().optional(),
+  selectedTopicId: z.string().optional(),
+  skillsToTrack: z.array(z.string()).optional(),
 });
