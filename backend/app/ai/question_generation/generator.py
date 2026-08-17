@@ -37,21 +37,6 @@ class AIQuestionGenerator:
         elif isinstance(result, dict) and "questions" in result:
             return result["questions"]
 
-        # Default fallback list of questions
-        fallback = []
-        for _ in range(count):
-            fallback.append({
-                "question_text": f"What is the average time complexity of operations in {topic_name}?",
-                "question_type": question_type.upper(),
-                "difficulty_level": difficulty.lower(),
-                "marks": 1.0,
-                "correct_answer": "B",
-                "explanation": f"{topic_name} halving principle yields logarithmic complexity.",
-                "hint": "Think about tree height properties.",
-                "options": [
-                    {"option_label": "A", "option_text": "O(1)"},
-                    {"option_label": "B", "option_text": "O(log N)"},
-                    {"option_label": "C", "option_text": "O(N)"}
-                ]
-            })
-        return fallback
+        # Use domain-specific questions bank grounded in topic and subject
+        from app.ai.question_generation.domain_questions import get_domain_questions
+        return get_domain_questions(subject_name=subject_name, topic_name=topic_name, count=count)
