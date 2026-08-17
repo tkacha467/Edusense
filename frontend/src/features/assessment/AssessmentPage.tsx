@@ -86,6 +86,72 @@ export function AssessmentPage() {
     }
   }, [sessionId, sessionDetails, currentUser]);
 
+  // Set default subject if state has it
+  useEffect(() => {
+    if (stateSubjectId) {
+      setSelectedSubjectId(stateSubjectId);
+      setViewState('landing');
+    }
+  }, [stateSubjectId]);
+
+  const fetchNextQuestion = async () => {
+    if (!sessionId) return;
+    setIsLoadingQuestion(true);
+    try {
+      const res = await assessmentApi.getNextQuestion(sessionId);
+      if (res.completed) {
+        const summary = await assessmentApi.finishAdaptiveSession(sessionId);
+        setResultData(summary);
+        setViewState('results');
+      } else {
+        setActiveQuestion(res.question || null);
+        setQuestionNumber(res.question_number || 1);
+        setSelectedOptionId('');
+      }
+    } catch (err) {
+      console.error("[AssessmentPage] Failed to load adaptive question:", err);
+    } finally {
+      setIsLoadingQuestion(false);
+    }
+  };
+
+  // Load first question when session is active
+  useEffect(() => {
+    if (viewState === 'in_progress' && sessionId && !activeQuestion && !isLoadingQuestion) {
+      fetchNextQuestion();
+    }
+  }, [viewState, sessionId]);
+
+  const parseUtcDate = (dateStr?: string | null): number => {
+    if (!dateStr) return Date.now();
+    const normalized = (dateStr.endsWith('Z') || dateStr.includes('+')) ? dateStr : dateStr + 'Z';
+    const parsed = new Date(normalized).getTime();
+    return isNaN(parsed) ? Date.now() : parsed;
+  };
+
+  // Timer calculation from started_at
+  useEffect(() => {
+    if (sessionDetails && sessionDetails.started_at && viewState === 'in_progress') {
+      const startTime = parseUtcDate(sessionDetails.started_at);
+      const limit = (sessionDetails.time_limit_seconds || 900) * 1000;
+      
+      const updateTimer = () => {
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, Math.floor((limit - elapsed) / 1000));
+        setTimeRemaining(remaining);
+        
+        if (remaining === 0 && elapsed >= limit) {
+          console.warn("[Timer Expiry] Assessment limit reached. Concluding session.");
+          handleFinalSubmit();
+        }
+      };
+
+      updateTimer();
+      const interval = setInterval(updateTimer, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [sessionDetails, viewState]);
+
   const handleStart = async () => {
     if (!selectedSubjectId) return;
     console.log("[AssessmentPage] handleStart CLICKED with subjectId:", selectedSubjectId);
