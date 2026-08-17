@@ -56,40 +56,144 @@ def seed_demo_dataset():
             db.refresh(faculty_user)
             print(f"[+] Created Faculty User: {faculty_user.display_name} ({faculty_user.email})")
 
-        # 2. Subjects and Skills Data
+        # 2. Complete Academic Degree Curriculum Catalog (BCA, MCA, BSc DS, MSc DS, Computer Engg)
         subject_catalog = [
+            # BCA (Bachelor of Computer Applications)
             {
-                "code": "CS-401",
-                "name": "Logit Function & AI Logic",
-                "department": "Computer Science",
-                "semester": 4,
-                "skills": [
-                    {"code": "SK-LOG-01", "name": "Logit Function Complexity"},
-                    {"code": "SK-LOG-02", "name": "Sigmoid Activation Curves"},
-                    {"code": "SK-LOG-03", "name": "Binary Cross-Entropy Loss"}
-                ]
+                "code": "BCA-101",
+                "name": "Programming in C & C++",
+                "department": "BCA",
+                "semester": 1,
+                "topics": ["Pointers & Memory Allocation", "Object Oriented Concepts", "File Handling in C++"],
+                "skills": [{"name": "Dynamic Memory Allocation"}, {"name": "Class Inheritance"}, {"name": "File I/O Streams"}]
             },
             {
-                "code": "CS-601",
-                "name": "Neural Decay Networks",
-                "department": "Computer Science",
-                "semester": 6,
-                "skills": [
-                    {"code": "SK-NEU-01", "name": "Gradient Descent Rates"},
-                    {"code": "SK-NEU-02", "name": "Backpropagation Matrix Calculus"},
-                    {"code": "SK-NEU-03", "name": "Weight Decay Regularization"}
-                ]
+                "code": "BCA-201",
+                "name": "Data Structures & Algorithms",
+                "department": "BCA",
+                "semester": 2,
+                "topics": ["Linked Lists & Stacks", "Binary Search Trees", "Sorting & Searching"],
+                "skills": [{"name": "Recursion & Trees"}, {"name": "Array Sorting Complexity"}, {"name": "Stack Push/Pop"}]
             },
             {
-                "code": "DS-402",
-                "name": "Matrix Calculus",
-                "department": "Data Science",
+                "code": "BCA-301",
+                "name": "Database Management Systems (DBMS)",
+                "department": "BCA",
+                "semester": 3,
+                "topics": ["SQL Normalization", "Relational Algebra", "Transactions & ACID"],
+                "skills": [{"name": "3NF Normalization"}, {"name": "SQL Join Queries"}, {"name": "ACID Properties"}]
+            },
+            {
+                "code": "BCA-401",
+                "name": "Web Technologies (HTML/CSS/JS)",
+                "department": "BCA",
                 "semester": 4,
-                "skills": [
-                    {"code": "SK-MAT-01", "name": "Jacobian Determinants"},
-                    {"code": "SK-MAT-02", "name": "Hessian Matrix Optimization"},
-                    {"code": "SK-MAT-03", "name": "Vector Partial Derivatives"}
-                ]
+                "topics": ["DOM Manipulation", "Async JavaScript & Fetch API", "CSS Grid & Flexbox"],
+                "skills": [{"name": "Async/Await API Calls"}, {"name": "Responsive Web Design"}, {"name": "Event Listeners"}]
+            },
+
+            # MCA (Master of Computer Applications)
+            {
+                "code": "MCA-101",
+                "name": "Advanced Java & Enterprise Apps",
+                "department": "MCA",
+                "semester": 1,
+                "topics": ["Spring Boot Microservices", "Hibernate ORM", "Java Multithreading"],
+                "skills": [{"name": "Dependency Injection"}, {"name": "JPA Entities"}, {"name": "Thread Concurrency"}]
+            },
+            {
+                "code": "MCA-201",
+                "name": "Cloud Computing & DevOps",
+                "department": "MCA",
+                "semester": 2,
+                "topics": ["Docker Containerization", "Kubernetes Orchestration", "CI/CD Pipelines"],
+                "skills": [{"name": "Dockerfile Configuration"}, {"name": "K8s Pod Scaling"}, {"name": "GitHub Actions Workflow"}]
+            },
+            {
+                "code": "MCA-301",
+                "name": "Artificial Intelligence & Expert Systems",
+                "department": "MCA",
+                "semester": 3,
+                "topics": ["Logit Function & AI Logic", "Heuristic Search Algorithms", "Knowledge Representation"],
+                "skills": [{"name": "Logit Function Complexity"}, {"name": "A* Search Algorithm"}, {"name": "First-Order Logic"}]
+            },
+
+            # B.Sc. Data Science
+            {
+                "code": "BDS-101",
+                "name": "Python for Data Science",
+                "department": "B.Sc. Data Science",
+                "semester": 1,
+                "topics": ["NumPy Array Operations", "Pandas Dataframes", "Matplotlib Visualization"],
+                "skills": [{"name": "Vectorized Computations"}, {"name": "Dataframe Filtering"}, {"name": "Statistical Plotting"}]
+            },
+            {
+                "code": "BDS-201",
+                "name": "Applied Statistics & Probability",
+                "department": "B.Sc. Data Science",
+                "semester": 2,
+                "topics": ["Hypothesis Testing (t-test)", "Bayesian Probability", "Probability Distributions"],
+                "skills": [{"name": "p-value Analysis"}, {"name": "Bayes Theorem Application"}, {"name": "Normal Distribution"}]
+            },
+            {
+                "code": "BDS-301",
+                "name": "Data Visualization & EDA",
+                "department": "B.Sc. Data Science",
+                "semester": 3,
+                "topics": ["Exploratory Data Analysis", "Seaborn Heatmaps", "Feature Outlier Detection"],
+                "skills": [{"name": "Correlation Heatmaps"}, {"name": "Feature Skewness Removal"}, {"name": "Boxplot Outliers"}]
+            },
+
+            # M.Sc. Data Science
+            {
+                "code": "MDS-101",
+                "name": "Machine Learning & Pattern Recognition",
+                "department": "M.Sc. Data Science",
+                "semester": 1,
+                "topics": ["Supervised Classification", "Support Vector Machines", "Random Forest Ensembles"],
+                "skills": [{"name": "Decision Tree Gini Impurity"}, {"name": "Hyperparameter Tuning"}, {"name": "ROC-AUC Curves"}]
+            },
+            {
+                "code": "MDS-201",
+                "name": "Deep Learning & Neural Networks",
+                "department": "M.Sc. Data Science",
+                "semester": 2,
+                "topics": ["Convolutional Neural Networks", "Neural Decay Networks", "Recurrent Networks & Transformers"],
+                "skills": [{"name": "Gradient Descent Rates"}, {"name": "Convolutional Feature Maps"}, {"name": "Attention Mechanism"}]
+            },
+            {
+                "code": "MDS-301",
+                "name": "Big Data Engineering (Spark/Hadoop)",
+                "department": "M.Sc. Data Science",
+                "semester": 3,
+                "topics": ["PySpark RDD Transformations", "Distributed File Systems (HDFS)", "MapReduce Paradigms"],
+                "skills": [{"name": "Spark Dataframe Aggregations"}, {"name": "MapReduce Jobs"}, {"name": "HDFS Block Replication"}]
+            },
+
+            # Computer Engineering
+            {
+                "code": "CE-101",
+                "name": "Computer Organization & Architecture",
+                "department": "Computer Engineering",
+                "semester": 1,
+                "topics": ["Instruction Set Architecture (ISA)", "CPU Pipelining & Hazards", "Cache Memory Mapping"],
+                "skills": [{"name": "Cache Hit/Miss Rate"}, {"name": "Pipelining Stall Resolution"}, {"name": "Assembly Addressing Modes"}]
+            },
+            {
+                "code": "CE-201",
+                "name": "Operating Systems & Kernels",
+                "department": "Computer Engineering",
+                "semester": 2,
+                "topics": ["Process Synchronization & Mutex", "Virtual Memory & Paging", "Deadlock Prevention"],
+                "skills": [{"name": "Banker's Algorithm"}, {"name": "Page Replacement LRU"}, {"name": "Semaphore Locks"}]
+            },
+            {
+                "code": "CE-301",
+                "name": "Computer Networks & Security",
+                "department": "Computer Engineering",
+                "semester": 3,
+                "topics": ["TCP/IP 4-Layer Architecture", "RSA Cryptography & Hashes", "Subnetting & IP Routing"],
+                "skills": [{"name": "CIDR Subnet Masking"}, {"name": "RSA Public Key Encryption"}, {"name": "TCP 3-Way Handshake"}]
             }
         ]
 
@@ -97,7 +201,7 @@ def seed_demo_dataset():
         created_skills = []
 
         for subj_data in subject_catalog:
-            subj = db.query(Subject).filter(Subject.code == subj_data["code"]).first()
+            subj = db.query(Subject).filter((Subject.code == subj_data["code"]) | (Subject.name == subj_data["name"])).first()
             if not subj:
                 subj = Subject(
                     id=str(uuid.uuid4()),
@@ -111,6 +215,22 @@ def seed_demo_dataset():
                 db.commit()
                 db.refresh(subj)
             created_subjects.append(subj)
+
+            # Insert Topics for Subject
+            from app.models.learning import Topic
+            from app.core.enums import DifficultyLevel
+            for t_idx, t_name in enumerate(subj_data.get("topics", [])):
+                top = db.query(Topic).filter_by(subject_id=subj.id, name=t_name).first()
+                if not top:
+                    top = Topic(
+                        id=str(uuid.uuid4()),
+                        subject_id=subj.id,
+                        name=t_name,
+                        difficulty_level=DifficultyLevel.INTERMEDIATE,
+                        order_index=t_idx
+                    )
+                    db.add(top)
+                    db.commit()
 
             for sk_data in subj_data["skills"]:
                 sk = db.query(Skill).filter(Skill.name == sk_data["name"]).first()

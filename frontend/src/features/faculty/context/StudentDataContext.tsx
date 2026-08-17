@@ -296,49 +296,56 @@ export const StudentDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [loadingModal, setLoadingModal] = useState<boolean>(false);
 
-  // Sync backend student profiles if available
+  // Sync backend student profiles dynamically when real students sign up and take exams
   useEffect(() => {
     async function syncBackendStudents() {
       try {
         const res = await apiClient.get('/faculty/students');
         if (res.data && res.data.items && res.data.items.length > 0) {
           const apiItems = res.data.items;
-          const updated = [...students];
-          apiItems.forEach((item: any) => {
-            const exists = updated.find(s => s.id === item.id);
-            if (!exists) {
-              updated.push({
-                id: item.id,
-                name: item.name || `Student ${item.id.substring(0, 6)}`,
-                email: item.email || `student_${item.id.substring(0, 6)}@edusense.ai`,
-                enrollment_number: `EDU-2026-${item.id.substring(0, 6).toUpperCase()}`,
-                institution: item.institution || 'Engineering Institute',
-                department: item.department || 'Computer Science',
-                semester: item.semester || 4,
-                subject: 'Logit Function & AI Logic',
-                subject_id: '17bd775e-8512-4311-965f-fdc9c3979792',
-                knowledge_health: 72.0,
-                retention_pct: 75.5,
-                forget_probability: 0.28,
-                mastery_score: 74.0,
-                last_revision: '2 days ago',
-                status: 'Review Needed',
-                risk_level: 'Medium',
-                recommended_revision_date: 'Aug 20, 2026',
-                predicted_forgetting_date: 'Aug 25, 2026',
-                confidence_score: 93.5,
-                days_until_forgetting: 6,
-                revision_priority: 'Medium',
-                learning_consistency: 80.0,
-                avg_response_time_sec: 34,
-                skills: ['Logit Function Complexity', 'Neural Network Vectorization']
-              });
-            }
+          const mappedStudents: StudentRecord[] = apiItems.map((item: any) => {
+            const health = item.knowledge_health ?? (item.overall_health ?? 75.0);
+            const forgetProb = item.forget_probability ?? (item.forgetting_probability ?? 0.25);
+            const risk: 'Critical' | 'High' | 'Medium' | 'Low' = 
+              forgetProb >= 0.7 ? 'Critical' :
+              forgetProb >= 0.5 ? 'High' :
+              forgetProb >= 0.3 ? 'Medium' : 'Low';
+
+            return {
+              id: item.id || `stu_${Math.random().toString(36).substr(2, 6)}`,
+              name: item.display_name || item.name || `Student ${item.id.substring(0, 6)}`,
+              email: item.email || `student_${item.id.substring(0, 6)}@edusense.ai`,
+              enrollment_number: item.enrollment_number || `EDU-2026-${(item.id || 'STUDENT').substring(0, 6).toUpperCase()}`,
+              institution: item.institution || 'Engineering Institute of AI',
+              department: item.department || item.category || 'Computer Science',
+              semester: item.semester || 4,
+              subject: item.subject_name || item.subject || 'Data Structures & Algorithms',
+              subject_id: item.subject_id || '17bd775e-8512-4311-965f-fdc9c3979792',
+              knowledge_health: Number(health.toFixed(1)),
+              retention_pct: Number((100 - (forgetProb * 100)).toFixed(1)),
+              forget_probability: Number(forgetProb.toFixed(2)),
+              mastery_score: item.mastery_score ? Number(item.mastery_score.toFixed(1)) : Number((health * 1.05).toFixed(1)),
+              last_revision: item.last_interaction_at ? 'Recently Examined' : '1 day ago',
+              status: risk === 'Critical' || risk === 'High' ? 'At Risk' : risk === 'Medium' ? 'Review Needed' : 'Mastered',
+              risk_level: risk,
+              recommended_revision_date: 'Aug 22, 2026',
+              predicted_forgetting_date: 'Aug 26, 2026',
+              confidence_score: 95.0,
+              days_until_forgetting: forgetProb >= 0.5 ? 2 : 10,
+              revision_priority: risk === 'Critical' || risk === 'High' ? 'High' : 'Medium',
+              learning_consistency: 85.0,
+              avg_response_time_sec: 32,
+              skills: item.skills || ['Core Concepts', 'Algorithmic Logic']
+            };
           });
-          setStudents(updated);
+
+          // Merge backend students with any missing demo fallback entries
+          const existingIds = new Set(mappedStudents.map(s => s.id));
+          const remainingMock = INITIAL_MOCK_STUDENTS.filter(s => !existingIds.has(s.id));
+          setStudents([...mappedStudents, ...remainingMock]);
         }
       } catch (e) {
-        // Fallback silently to initialized high-fidelity mock dataset
+        // Fallback silently to initialized high-fidelity dataset
       }
     }
     syncBackendStudents();
