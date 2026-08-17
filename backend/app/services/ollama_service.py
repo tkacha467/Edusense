@@ -1,7 +1,7 @@
 """Ollama Local LLM Service Integration for EduSense AI."""
 import json
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Optional
 
 try:
     import httpx
@@ -62,3 +62,65 @@ def query_local_ollama(
             "Local Ollama server is offline or model 'llama3.2' is not pulled. "
             "Running fallback intelligent decision support system using local database records."
         )
+
+
+def generate_questions_with_ollama(
+    subject_name: str,
+    topic_name: str,
+    difficulty: str = "intermediate",
+    count: int = 3,
+    model_name: str = DEFAULT_MODEL
+) -> Optional[List[Dict[str, Any]]]:
+    """
+    Generates dynamic MCQ questions for a specific subject and topic using Ollama local LLM.
+    """
+    prompt = f"""
+    Generate {count} Multiple Choice Questions (MCQs) for the topic '{topic_name}' in the subject '{subject_name}' at a '{difficulty}' difficulty level.
+    Return ONLY a valid JSON array of objects with the following keys:
+    - question_text (string)
+    - question_type ("MCQ")
+    - difficulty_level ("{difficulty.upper()}")
+    - marks (1.0)
+    - correct_answer ("A", "B", "C", or "D")
+    - explanation (string)
+    - hint (string)
+    - options (array of 4 objects with keys "option_label" and "option_text")
+
+    Do NOT include Markdown codeblocks or extra text. Output ONLY pure JSON.
+    """
+
+    payload = {
+        "model": model_name,
+        "prompt": prompt,
+        "format": "json",
+        "temperature": 0.3,
+        "stream": False
+    }
+
+    try:
+        if httpx:
+            resp = httpx.post(OLLAMA_GENERATE_URL, json=payload, timeout=20.0)
+            if resp.status_code == 200:
+                raw_txt = resp.json().get("response", "")
+                parsed = json.loads(raw_txt)
+                if isinstance(parsed, list):
+                    return parsed
+                elif isinstance(parsed, dict) and "questions" in parsed:
+                    return parsed["questions"]
+        else:
+            req = urllib.request.Request(
+                OLLAMA_GENERATE_URL,
+                data=json.dumps(payload).encode('utf-8'),
+                headers={'Content-Type': 'application/json'}
+            )
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                raw_txt = json.loads(resp.read().decode('utf-8')).get("response", "")
+                parsed = json.loads(raw_txt)
+                if isinstance(parsed, list):
+                    return parsed
+                elif isinstance(parsed, dict) and "questions" in parsed:
+                    return parsed["questions"]
+    except Exception as e:
+        logger.warning(f"Ollama question generation fallback triggered: {str(e)}")
+
+    return None
