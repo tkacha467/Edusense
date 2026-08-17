@@ -36,33 +36,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const restoreSession = async () => {
     setLoading(true);
     try {
-      let stored = sessionStorage.getItem('edu_session');
-      if (!stored) {
-        stored = localStorage.getItem('edu_session');
+      const token = localStorage.getItem('edu_auth_token') || sessionStorage.getItem('edu_auth_token');
+      if (token) {
+        try {
+          const freshSession = await apiGetCurrentUser();
+          setCurrentUser(freshSession.user);
+          setLoading(false);
+          return;
+        } catch (err) {
+          console.warn("Failed to refresh user session via /auth/me", err);
+        }
       }
 
+      let stored = sessionStorage.getItem('edu_session') || localStorage.getItem('edu_session');
       if (stored) {
         const session: AuthSession = JSON.parse(stored);
         if (session.expiresAt > Date.now()) {
-          if (!session.user.profileId) {
-            try {
-              const freshSession = await apiGetCurrentUser();
-              setCurrentUser(freshSession.user);
-              if (localStorage.getItem('edu_session')) {
-                localStorage.setItem('edu_session', JSON.stringify(freshSession));
-              } else {
-                sessionStorage.setItem('edu_session', JSON.stringify(freshSession));
-              }
-              setLoading(false);
-              return;
-            } catch (err) {
-              console.warn("Failed to refresh user info via /auth/me", err);
-            }
-          }
           setCurrentUser(session.user);
         } else {
           sessionStorage.removeItem('edu_session');
           localStorage.removeItem('edu_session');
+          localStorage.removeItem('edu_auth_token');
+          sessionStorage.removeItem('edu_auth_token');
           setCurrentUser(null);
         }
       } else {

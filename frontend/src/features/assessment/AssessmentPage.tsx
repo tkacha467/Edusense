@@ -57,116 +57,26 @@ export function AssessmentPage() {
   } = useAssessment(sessionId);
   const cancelSessionMutation = useCancelSession();
 
-  console.log("[AssessmentPage Render]", {
-    viewState,
-    sessionId,
-    activeQuestion: activeQuestion ? activeQuestion.id : null,
-    isLoadingQuestion,
-    sessionDetailsStatus: sessionDetails?.status
-  });
-
-  // Set default subject if state has it
-  useEffect(() => {
-    if (stateSubjectId) {
-      setSelectedSubjectId(stateSubjectId);
-      setViewState('landing');
-    }
-  }, [stateSubjectId]);
-
-  const fetchNextQuestion = async () => {
-    if (!sessionId) return;
-    console.log("[AssessmentPage] fetchNextQuestion() invoked for sessionId:", sessionId);
-    setIsLoadingQuestion(true);
-    try {
-      const res = await assessmentApi.getNextQuestion(sessionId);
-      console.log("[AssessmentPage] GET /next RESPONSE:", res);
-      if (res.completed) {
-        console.log("[AssessmentPage] Session completed flag received from GET /next. Finishing session.");
-        const summary = await assessmentApi.finishAdaptiveSession(sessionId);
-        console.log("[AssessmentPage] Summary result loaded:", summary);
-        setResultData(summary);
-        setViewState('results');
-      } else {
-        console.log("[AssessmentPage] ACTIVE QUESTION SET:", res.question);
-        setActiveQuestion(res.question || null);
-        setQuestionNumber(res.question_number || 1);
-        setSelectedOptionId('');
-      }
-    } catch (err) {
-      console.error("[AssessmentPage] Failed to load adaptive question:", err);
-    } finally {
-      setIsLoadingQuestion(false);
-    }
-  };
-
-  // Load first question when session is active
-  useEffect(() => {
-    if (viewState === 'in_progress' && sessionId && !activeQuestion && !isLoadingQuestion) {
-      console.log("[AssessmentPage] useEffect triggering fetchNextQuestion()");
-      fetchNextQuestion();
-    }
-  }, [viewState, sessionId]);
-
-  const parseUtcDate = (dateStr?: string | null): number => {
-    if (!dateStr) return Date.now();
-    const normalized = (dateStr.endsWith('Z') || dateStr.includes('+')) ? dateStr : dateStr + 'Z';
-    const parsed = new Date(normalized).getTime();
-    return isNaN(parsed) ? Date.now() : parsed;
-  };
-
-  // Timer calculation from started_at
-  useEffect(() => {
-    if (sessionDetails && sessionDetails.started_at && viewState === 'in_progress') {
-      const startTime = parseUtcDate(sessionDetails.started_at);
-      const limit = (sessionDetails.time_limit_seconds || 900) * 1000;
-      
-      const updateTimer = () => {
-        const elapsed = Date.now() - startTime;
-        const remaining = Math.max(0, Math.floor((limit - elapsed) / 1000));
-        setTimeRemaining(remaining);
-        
-        if (remaining === 0 && elapsed >= limit) {
-          console.warn("[Timer Expiry] Assessment limit reached. Concluding session.");
-          handleFinalSubmit();
-        }
-      };
-
-      updateTimer();
-      const interval = setInterval(updateTimer, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [sessionDetails, viewState]);
-
   // Route & Session ownership validation
   useEffect(() => {
     if (sessionId && sessionDetails && currentUser) {
-      const studentProfileId = currentUser.profileId || currentUser.id;
-      console.log("[AssessmentPage] Route Protection Evaluating:", {
-        sessionStudentId: sessionDetails.student_id,
-        currentUserId: currentUser.id,
-        currentUserProfileId: currentUser.profileId,
-        currentUserIdField: currentUser.userId,
-        sessionStatus: sessionDetails.status
-      });
+      const authenticatedStudentProfileId = currentUser.profileId || currentUser.id;
 
-      // 1. Ownership validation
-      const isOwner = sessionDetails.student_id === currentUser.id || 
-                      (currentUser.profileId && sessionDetails.student_id === currentUser.profileId);
+      // 1. Ownership validation against canonical student profile ID
+      const isOwner = sessionDetails.student_id === authenticatedStudentProfileId;
 
       if (!isOwner) {
-        console.error(`[Route Protection] Unauthorized: session student_id (${sessionDetails.student_id}) does not match student profile (${studentProfileId}) or user id (${currentUser.id}).`);
+        console.error(`[Route Protection] Unauthorized: session student_id (${sessionDetails.student_id}) does not match authenticated student profile (${authenticatedStudentProfileId}).`);
         setViewState('forbidden');
         return;
       }
 
       // 2. Status validation
       if (sessionDetails.status === 'completed') {
-        console.log("[AssessmentPage] Session status is completed. Setting viewState to completed.");
         setViewState('completed');
         return;
       }
       if (sessionDetails.status === 'abandoned') {
-        console.log("[AssessmentPage] Session status is abandoned. Setting viewState to cancelled.");
         setViewState('cancelled');
         return;
       }

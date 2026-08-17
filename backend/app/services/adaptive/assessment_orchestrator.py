@@ -90,7 +90,16 @@ class AssessmentOrchestrator:
         total_questions: int = 5,
         time_limit: int = 900
     ) -> AssessmentSession:
-        """Initializes a new adaptive assessment session."""
+        # Ensure student is enrolled in valid subject
+        from app.models.learning import StudentSubject
+        enrollment = db.query(StudentSubject).filter_by(student_id=student_id, subject_id=subject_id).first()
+        if not enrollment:
+            subject = db.query(Subject).filter_by(id=subject_id).first()
+            if not subject:
+                raise ValidationException("Invalid subject specified for adaptive assessment.")
+            db.add(StudentSubject(student_id=student_id, subject_id=subject_id))
+            db.flush()
+
         session_data = {
             "student_id": student_id,
             "subject_id": subject_id,

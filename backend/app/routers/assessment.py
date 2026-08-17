@@ -267,34 +267,6 @@ def submit_assessment_session(
         raise HTTPException(status_code=500, detail=f"Failed to submit assessment: {str(e)}")
 
 
-@router.get("/history", response_model=PaginatedResponse[AssessmentSessionResponse])
-def get_student_assessment_history(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
-    student_profile: StudentProfile = Depends(require_onboarding_completed),
-    db: Session = Depends(get_db),
-    assessment_service: AssessmentService = Depends(get_assessment_service)
-) -> Any:
-    """
-    Fetch paginated assessment session history for the logged-in student.
-    """
-    history, total = assessment_service.get_assessment_history(
-        db=db,
-        student_id=student_profile.id,
-        page=page,
-        page_size=page_size
-    )
-
-    total_pages = (total + page_size - 1) // page_size if total > 0 else 0
-
-    return {
-        "items": [AssessmentSessionResponse.model_validate(h) for h in history],
-        "total": total,
-        "page": page,
-        "page_size": page_size,
-        "total_pages": total_pages
-    }
-
 
 @router.post("/{session_id}/abandon", response_model=AssessmentSessionResponse)
 def abandon_assessment_session(

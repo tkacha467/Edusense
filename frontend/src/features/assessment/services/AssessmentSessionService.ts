@@ -56,26 +56,25 @@ export class AssessmentSessionService {
   }
 
   // Recover active session from history or storage
-  static async recoverActiveSession(): Promise<AssessmentSession | null> {
+  static async recoverActiveSession(authenticatedProfileId?: string): Promise<AssessmentSession | null> {
     this.log('Attempting Session Recovery');
     
-    // First try database check
-    try {
-      const activeDbSession = await assessmentSessionApi.getCurrentSession();
-      if (activeDbSession) {
-        this.log('Active Session Recovered from DB', activeDbSession);
-        this.storeSessionId(activeDbSession.id);
-        return activeDbSession;
-      }
-    } catch (e) {
-      this.log('Failed to check active DB session', e);
-    }
-
     // Fallback to local storage key
     const storedId = this.getStoredSessionId();
     if (storedId) {
       try {
         const sessionDetails = await assessmentSessionApi.getSession(storedId);
+        
+        // Security check: Verify session ownership
+        if (authenticatedProfileId && sessionDetails.student_id !== authenticatedProfileId) {
+          this.log('Recovery REJECTED: Session student_id does not match authenticated profile ID', {
+            sessionStudentId: sessionDetails.student_id,
+            authenticatedProfileId
+          });
+          this.clearStoredSession();
+          return null;
+        }
+
         if (sessionDetails.status === 'in_progress') {
           this.log('Active Session Recovered from Storage ID', sessionDetails);
           return sessionDetails;

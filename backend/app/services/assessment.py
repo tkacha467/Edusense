@@ -60,12 +60,15 @@ class AssessmentService:
         Raises:
             ValidationException: If the student is not enrolled in the subject.
         """
-        # Business rule: verify student is enrolled in subject
+        # Business rule: verify student is enrolled in subject, auto-enroll if valid subject
         enrollment = self.student_subject_repo.get_by_student_and_subject(
             db, student_id=student_id, subject_id=subject_id
         )
         if not enrollment:
-            raise ValidationException("Student is not enrolled in this subject.")
+            subject = self.subject_repo.get_by_id(db, subject_id)
+            if not subject:
+                raise ValidationException("Student is not enrolled in this subject.")
+            self.student_subject_repo.create(db, obj_in={"student_id": student_id, "subject_id": subject_id})
 
         session_data = {
             "student_id": student_id,

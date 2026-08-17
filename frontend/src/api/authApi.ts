@@ -18,12 +18,15 @@ export const login = async (email: string, password: string, expectedRole?: User
       throw new ApiError(`Please use the ${userRole === UserRole.FACULTY ? 'teacher' : userRole} login portal.`, 403);
     }
 
+    const profileId = data.profile_id || data.user.id;
+    const userId = data.user.id;
+
     const session: AuthSession = {
       token: devToken,
       user: {
-        id: data.user.id,
-        profileId: data.profile_id,
-        userId: data.user.id,
+        id: profileId,
+        profileId: profileId,
+        userId: userId,
         email: data.user.email,
         fullName: data.user.display_name || data.user.email.split('@')[0],
         role: data.user.role === UserRole.STUDENT ? UserRole.STUDENT : UserRole.FACULTY,
@@ -71,12 +74,15 @@ export const register = async (userData: RegisterUserData): Promise<AuthSession>
     });
 
     const data = response.data;
+    const profileId = data.profile_id || data.user.id;
+    const userId = data.user.id;
+
     const session: AuthSession = {
       token: devToken,
       user: {
-        id: data.user.id,
-        profileId: data.profile_id,
-        userId: data.user.id,
+        id: profileId,
+        profileId: profileId,
+        userId: userId,
         email: data.user.email,
         fullName: data.user.display_name || data.user.email.split('@')[0],
         role: data.user.role === UserRole.STUDENT ? UserRole.STUDENT : UserRole.FACULTY,
@@ -103,12 +109,15 @@ export const getCurrentUser = async (): Promise<AuthSession> => {
       headers: token ? { Authorization: `Bearer ${token}` } : {}
     });
     const data = response.data;
+    const profileId = data.profile_id || data.user.id;
+    const userId = data.user.id;
+
     const session: AuthSession = {
       token: token || '',
       user: {
-        id: data.user.id,
-        profileId: data.profile_id,
-        userId: data.user.id,
+        id: profileId,
+        profileId: profileId,
+        userId: userId,
         email: data.user.email,
         fullName: data.user.display_name || data.user.email.split('@')[0],
         role: data.user.role === UserRole.STUDENT ? UserRole.STUDENT : UserRole.FACULTY,

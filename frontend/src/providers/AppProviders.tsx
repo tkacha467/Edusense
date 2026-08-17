@@ -14,11 +14,11 @@ export const AppProviders: React.FC<{ children: React.ReactNode }> = ({ children
       <BrowserRouter>
         <ThemeProvider>
           <ToastProvider>
-            <ModalProvider>
-              <AuthProvider>
+            <AuthProvider>
+              <ModalProvider>
                 {children}
-              </AuthProvider>
-            </ModalProvider>
+              </ModalProvider>
+            </AuthProvider>
           </ToastProvider>
         </ThemeProvider>
       </BrowserRouter>
