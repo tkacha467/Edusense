@@ -11,6 +11,18 @@ from app.services.model_monitoring_service import get_model_monitoring_service
 
 router = APIRouter(prefix="/model-monitoring", tags=["Model Monitoring & Drift Intelligence"])
 
+@router.get("/overview")
+def get_model_monitoring_overview(
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    Fetch complete aggregate monitoring overview payload for single-request dashboard rendering.
+    """
+    service = get_model_monitoring_service()
+    return service.get_monitoring_overview(db)
+
+
 @router.get("/health")
 def get_model_health_summary(
     current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),

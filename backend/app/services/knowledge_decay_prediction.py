@@ -138,6 +138,21 @@ class KnowledgeDecayPredictionService:
         if not protective_factors:
             protective_factors.append("Initial foundation accuracy")
 
+        # Automatically record production prediction observation (Non-critical error tolerance)
+        try:
+            from app.services.model_monitoring_service import get_model_monitoring_service
+            monitoring_service = get_model_monitoring_service()
+            monitoring_service.record_prediction(
+                student_id=student_id,
+                skill_id=skill_id or "general",
+                forget_probability=forget_prob,
+                risk_level=risk_level,
+                feature_snapshot=feats,
+                model_version=self.model_version or "knowledge-decay-v1.1"
+            )
+        except Exception as err:
+            logger.warning(f"Non-critical prediction observation logging exception swallowed: {str(err)}")
+
         return {
             "student_id": student_id,
             "skill_id": skill_id,

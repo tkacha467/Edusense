@@ -232,3 +232,21 @@ $$\text{Production Inference} \longrightarrow \text{Prediction Log} \longrightar
 
 > [!CAUTION]
 > **Retraining Invariant**: Automatic model retraining is intentionally disabled. Data drift does not automatically imply performance failure; model updates require human research review, offline candidate evaluation, and explicit deployment authorization.
+
+---
+
+## 15. Production Model Monitoring & Observability ($v1.10$)
+
+### Inference Telemetry & Dashboard Integration Architecture
+The $v1.10$ release connects production ML inference to automatic prediction observation logging and delivers a Faculty Model Monitoring Dashboard:
+
+$$\text{Student/Faculty Request} \longrightarrow \text{ML Inference} \longrightarrow \text{Observation Logging} \longrightarrow \text{Monitoring Overview API} \longrightarrow \text{Faculty Monitoring Dashboard}$$
+
+### Research Invariants & Operational Rules
+1. **Inference Observability**: Every ML prediction automatically records an immutable observation (`student_id`, `skill_id`, `forget_probability`, `risk_level`, `feature_snapshot`, `model_version`).
+2. **Single Logical Inference**: Observation logging occurs once per inference call without recursive inference loops or secondary ML runs.
+3. **Data Sufficiency Integrity**: Scientifically communicates `INSUFFICIENT_DATA` when observations fall below minimum operational thresholds ($N < 30$ for PSI feature drift, $N < 50$ for labeled performance).
+4. **Token & Network Efficiency**: Utilizes single-request aggregate endpoint (`GET /api/v1/model-monitoring/overview`) and single-source `edu_session` session headers.
+
+> [!IMPORTANT]
+> **Scientific Validity Disclaimer**: Monitoring infrastructure validation must not be confused with live production performance validation. Live model accuracy and calibration claims are reserved until sufficient post-outcome observations accumulate.

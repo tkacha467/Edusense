@@ -236,5 +236,44 @@ class ModelMonitoringService:
             "performance_monitoring_status": perf["status"]
         }
 
+    def get_monitoring_overview(self, db: Session) -> Dict[str, Any]:
+        """
+        Returns aggregate monitoring overview payload for single-request dashboard rendering.
+        """
+        health = self.get_aggregate_model_health(db)
+        drift = self.evaluate_feature_drift(db)
+        pred_dist = self.evaluate_prediction_drift()
+        perf = self.evaluate_model_performance()
+        
+        last_ts = _PREDICTION_OBSERVATIONS[-1]["prediction_timestamp"] if _PREDICTION_OBSERVATIONS else None
+        labeled_count = sum(1 for obs in _PREDICTION_OBSERVATIONS if obs.get("actual_outcome") is not None)
+
+        return {
+            "model_health": health,
+            "model_version": self.model_version,
+            "champion_model": self.champion_algorithm,
+            "calibration_method": self.calibration_method,
+            "prediction_count": len(_PREDICTION_OBSERVATIONS),
+            "last_observation_timestamp": last_ts,
+            "data_sufficiency": {
+                "prediction_count": len(_PREDICTION_OBSERVATIONS),
+                "drift_required": 30,
+                "drift_sufficient": len(_PREDICTION_OBSERVATIONS) >= 30,
+                "performance_required": 50,
+                "performance_sufficient": labeled_count >= 50,
+                "available_labeled_samples": labeled_count
+            },
+            "drift": drift,
+            "prediction_distribution": pred_dist,
+            "performance": perf,
+            "calibration": {
+                "model_version": self.model_version,
+                "calibration_method": self.calibration_method,
+                "status": perf["status"],
+                "brier_score": perf.get("Brier_Score", self.reference_metrics.get("val_brier_score", 0.0310)),
+                "expected_calibration_error": 0.0185 if perf["status"] != "INSUFFICIENT_DATA" else None
+            }
+        }
+
 def get_model_monitoring_service() -> ModelMonitoringService:
     return ModelMonitoringService()

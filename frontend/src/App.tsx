@@ -35,6 +35,7 @@ import { FacultyAnalytics } from './pages/faculty/FacultyAnalytics';
 import { FacultyReports } from './pages/faculty/FacultyReports';
 import { StudentSearchPage } from './features/faculty/pages/StudentSearchPage';
 import { FacultyPredictionPage } from './features/faculty/pages/FacultyPredictionPage';
+import { ModelMonitoringPage } from './features/faculty/pages/ModelMonitoringPage';
 import { FacultyAIAssistant } from './features/ai-assistant/FacultyAIAssistant';
 
 // Admin Pages
@@ -80,6 +81,7 @@ function App() {
             <Route path="/dashboard" element={<FacultyDashboard />} />
             <Route path="/faculty/students" element={<StudentSearchPage />} />
             <Route path="/prediction" element={<FacultyPredictionPage />} />
+            <Route path="/faculty/model-monitoring" element={<ModelMonitoringPage />} />
             <Route path="/analytics" element={<FacultyAnalytics />} />
             <Route path="/reports" element={<FacultyReports />} />
             <Route path="/assistant" element={<FacultyAIAssistant />} />
