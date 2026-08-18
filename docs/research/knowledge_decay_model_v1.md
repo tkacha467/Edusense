@@ -139,3 +139,40 @@ $$\text{ML Prediction } P(\text{forget}) \longrightarrow \text{Risk Band} \longr
 
 > [!NOTE]
 > **Policy Invariant**: The adaptive scheduler is a deterministic, rule-based policy layer operating on top of the calibrated knowledge-decay predictor. It does not alter the underlying model probability.
+
+---
+
+## 11. Student Knowledge Health & Intelligent Dashboard ($v1.6$)
+
+### UI Architecture & Data Pipeline Integration
+The $v1.6$ Student Knowledge Health Dashboard exposes backend ML predictions, adaptive revision schedules, outcome tracking, and analytics scores directly to the student UI:
+
+```text
+                    ML Prediction P(forget)
+                              │
+                              ▼
+                      Adaptive Scheduler
+                              │
+                              ▼
+              ┌───────────────┴───────────────┐
+              ▼                               ▼
+        Student Dashboard               Faculty Dashboard
+   (Health Score, Adaptive Queue)      (Risk Heatmap, Analytics)
+              │                               │
+              └───────────────┬───────────────┘
+                              ▼
+                       Revision Outcome
+                              │
+                              ▼
+                        Feature Store
+                              │
+                              └───────────────→ Next Prediction
+```
+
+### Displayed Product Metrics
+1. **Knowledge Health Score**: Labeled clearly as an aggregate product analytics score ($0 - 100$).
+2. **Adaptive Queue Explanation**: Pedagogical rationale for why a skill's revision interval was extended or shortened.
+3. **Closed-Loop Lifecycle**: Tracks task transition states (`VIEWED` $\rightarrow$ `STARTED` $\rightarrow$ `COMPLETED`) to refresh feature vectors and re-evaluate forgetting risk.
+
+> [!TIP]
+> **Non-Causal Representation**: The student interface presents risk trends and revision schedules as predicted estimates and observed adherence patterns, avoiding unfounded causal claims.
