@@ -48,7 +48,7 @@ class OllamaRAGService:
     def __init__(self):
         self.rag_service = get_rag_service()
 
-    def _query_ollama_raw(self, prompt: str, timeout_sec: float = 25.0) -> Optional[str]:
+    def _query_ollama_raw(self, prompt: str, timeout_sec: float = 45.0) -> Optional[str]:
         """Queries local Ollama endpoint with strict timeout."""
         payload = {
             "model": DEFAULT_MODEL,
