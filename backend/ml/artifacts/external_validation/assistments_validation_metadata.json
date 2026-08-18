@@ -1,6 +1,6 @@
 {
   "model_version": "knowledge-decay-v1.1",
-  "eval_timestamp": "2026-08-18T17:23:34.604880+00:00",
+  "eval_timestamp": "2026-08-18T17:31:21.360743+00:00",
   "target_definition": "forgotten = 1 if future 7d accuracy < 0.70 else 0",
   "dataset": {
     "dataset_name": "ASSISTments Benchmark Dataset",
@@ -15,20 +15,20 @@
   },
   "sample_counts": {
     "total_instances": 43,
-    "holdout_test_instances": 9,
+    "holdout_test_instances": 10,
     "unseen_holdout_students": 5,
     "positive_forgetting_rate": 0.6512
   },
   "production_model_holdout_metrics": {
-    "PR_AUC": 0.7937,
-    "ROC_AUC": 0.3571,
-    "Brier_Score": 0.5607,
-    "Recall": 0.2857,
-    "F1": 0.4444
+    "PR_AUC": 0.65,
+    "ROC_AUC": 0.54,
+    "Brier_Score": 0.468,
+    "Recall": 0.0,
+    "F1": 0.0
   },
   "baselines": {
-    "class_prior_brier": 0.1985,
-    "recency_heuristic_brier": 0.5205
+    "class_prior_brier": 0.2888,
+    "recency_heuristic_brier": 0.4564
   },
   "synthetic_to_real_psi_drift": {
     "days_since_last_review": {
