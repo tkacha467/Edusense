@@ -193,3 +193,20 @@ $$\text{Faculty Deep-Dive} \longrightarrow \text{Model Factor Attribution} \long
 
 > [!IMPORTANT]
 > **Non-Causal Attribution Disclaimer**: This system estimates observational intervention outcomes and does not establish causal treatment effects. Causal inference requires future randomized controlled trials.
+
+---
+
+## 13. Faculty Intervention Command Center & Browser Integration ($v1.8$)
+
+### End-to-End Browser Architecture Integration
+The $v1.8$ release connects the frontend user experience directly to the underlying $v1.7$ intervention intelligence APIs:
+
+$$\text{Faculty Dashboard} \longrightarrow \text{Student Search} \longrightarrow \text{Risk Deep-Dive} \longrightarrow \text{Intervention Dialog} \longrightarrow \text{Student Adaptive Queue} \longrightarrow \text{Post-Intervention Outcome}$$
+
+### Key Interface Features
+1. **Targeted Intervention Dialog**: Allows faculty to select intervention type (`REVISION`, `PRACTICE`, `TARGETED_ASSESSMENT`), set priority (`URGENT`, `HIGH`, `MEDIUM`, `LOW`), and inspect model factor attributions.
+2. **Student Queue Sync**: Interventions automatically surface in the student's adaptive revision queue (`GET /recommendations/adaptive-queue`).
+3. **Session & Security Invariance**: Enforces dynamic `edu_session` session headers via `apiClient` without hardcoding tokens or duplicating auth requests.
+
+> [!TIP]
+> **Token & API Efficiency**: Operates with zero polling loops, single-source authorization headers, and targeted query invalidation to preserve network performance.

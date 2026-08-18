@@ -31,6 +31,9 @@ import {
 } from 'recharts';
 import type { StudentDeepDiveDetails } from '../types/studentAnalytics';
 
+import { InterventionDialog } from './InterventionDialog';
+import type { InterventionRecord } from '../api/facultyApi';
+
 interface StudentDetailsModalProps {
   details: StudentDeepDiveDetails | null;
   isOpen: boolean;
@@ -39,6 +42,21 @@ interface StudentDetailsModalProps {
 
 export function StudentDetailsModal({ details, isOpen, onClose }: StudentDetailsModalProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'timeline' | 'decay' | 'skills' | 'history' | 'recommendations'>('overview');
+  
+  // Intervention Dialog State
+  const [isInterventionOpen, setIsInterventionOpen] = useState(false);
+  const [selectedSkillId, setSelectedSkillId] = useState<string>('');
+  const [selectedSkillName, setSelectedSkillName] = useState<string>('');
+  const [selectedSkillRisk, setSelectedSkillRisk] = useState<'LOW' | 'MEDIUM' | 'HIGH'>('HIGH');
+  const [selectedSkillProb, setSelectedSkillProb] = useState<number>(0.5);
+
+  const handleOpenIntervention = (skillId: string, skillName: string, riskLevel: string = 'HIGH', forgetProb: number = 0.5) => {
+    setSelectedSkillId(skillId);
+    setSelectedSkillName(skillName);
+    setSelectedSkillRisk(riskLevel.includes('High') || riskLevel === 'HIGH' ? 'HIGH' : riskLevel.includes('Medium') || riskLevel === 'MEDIUM' ? 'MEDIUM' : 'LOW');
+    setSelectedSkillProb(forgetProb);
+    setIsInterventionOpen(true);
+  };
 
   if (!isOpen || !details) return null;
 
@@ -259,9 +277,18 @@ export function StudentDetailsModal({ details, isOpen, onClose }: StudentDetails
                         <p className="text-xs font-semibold text-white">{s.name}</p>
                         <p className="text-[10px] text-slate-400 mt-0.5">Forget Probability: <span className="text-rose-400 font-bold">{s.forget_prob}</span></p>
                       </div>
-                      <span className="text-xs font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded-md">
-                        {s.proficiency}%
-                      </span>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleOpenIntervention(s.id, s.name, 'HIGH', typeof s.forget_prob === 'number' ? s.forget_prob : parseFloat(String(s.forget_prob).replace('%','')) / 100)}
+                          className="bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/30 text-indigo-300 font-semibold text-[11px] px-2.5 py-1 rounded-md transition-all flex items-center space-x-1"
+                        >
+                          <Zap className="w-3 h-3 text-indigo-400" />
+                          <span>Recommend Intervention</span>
+                        </button>
+                        <span className="text-xs font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded-md">
+                          {s.proficiency}%
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -364,6 +391,18 @@ export function StudentDetailsModal({ details, isOpen, onClose }: StudentDetails
           )}
         </div>
       </div>
+
+      {/* Targeted Learning Intervention Dialog */}
+      <InterventionDialog
+        isOpen={isInterventionOpen}
+        onClose={() => setIsInterventionOpen(false)}
+        studentId={student.id}
+        studentName={student.name}
+        skillId={selectedSkillId}
+        skillName={selectedSkillName}
+        currentRisk={selectedSkillRisk}
+        forgetProbability={selectedSkillProb}
+      />
     </div>
   );
 }
