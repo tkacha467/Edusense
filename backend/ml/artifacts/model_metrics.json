@@ -12,12 +12,12 @@
   },
   "student_holdout_metrics": {
     "num_test_students": 8,
-    "num_test_samples": 101,
-    "pr_auc": 0.9396,
-    "roc_auc": 0.9766,
-    "brier_score": 0.0504
+    "num_test_samples": 99,
+    "pr_auc": 0.9485,
+    "roc_auc": 0.9778,
+    "brier_score": 0.0558
   },
   "training_samples": 350,
   "test_samples": 75,
-  "training_timestamp": "2026-08-18T06:56:40.344482+00:00"
+  "training_timestamp": "2026-08-18T07:18:12.354922+00:00"
 }

@@ -34,8 +34,8 @@
       "f1_score": 0.9143,
       "accuracy": 0.96,
       "brier_score": 0.0323,
-      "training_time_ms": 9.44,
-      "inference_time_ms": 0.014
+      "training_time_ms": 7.27,
+      "inference_time_ms": 0.0
     },
     "Random Forest": {
       "roc_auc": 0.9737,
@@ -45,8 +45,8 @@
       "f1_score": 0.8571,
       "accuracy": 0.9333,
       "brier_score": 0.0553,
-      "training_time_ms": 108.18,
-      "inference_time_ms": 0.071
+      "training_time_ms": 167.64,
+      "inference_time_ms": 0.148
     },
     "Gradient Boosting": {
       "roc_auc": 0.9671,
@@ -56,8 +56,8 @@
       "f1_score": 0.8,
       "accuracy": 0.9067,
       "brier_score": 0.0671,
-      "training_time_ms": 83.88,
-      "inference_time_ms": 0.0
+      "training_time_ms": 137.15,
+      "inference_time_ms": 0.013
     },
     "XGBoost": {
       "roc_auc": 0.9774,
@@ -67,15 +67,15 @@
       "f1_score": 0.8571,
       "accuracy": 0.9333,
       "brier_score": 0.041,
-      "training_time_ms": 235.67,
-      "inference_time_ms": 0.022
+      "training_time_ms": 176.19,
+      "inference_time_ms": 0.013
     }
   },
   "student_holdout_results": {
     "num_test_students": 8,
-    "num_test_samples": 101,
-    "pr_auc": 0.9396,
-    "roc_auc": 0.9766,
-    "brier_score": 0.0504
+    "num_test_samples": 99,
+    "pr_auc": 0.9485,
+    "roc_auc": 0.9778,
+    "brier_score": 0.0558
   }
 }

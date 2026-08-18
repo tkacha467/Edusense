@@ -51,8 +51,18 @@ class PersonalizedRevisionRecommendationEngine:
                 topics = [Topic(id=f"topic_{subject.id[:8]}", name=f"{subject.name} Core Concepts", subject_id=subject.id, difficulty_level=DifficultyLevel.INTERMEDIATE)]
 
             for topic in topics:
-                # 1. Get ML Prediction from validated model
+                # 1. Get ML Prediction from validated model (Unchanged)
                 pred = self.prediction_service.predict_forgetting_risk(
+                    db=db,
+                    student_id=student_id,
+                    skill_id=topic.id,
+                    subject_id=subject.id
+                )
+
+                # 2. Get Adaptive Schedule from Adaptive Layer
+                from app.services.adaptive_revision_scheduler import get_adaptive_scheduler
+                scheduler = get_adaptive_scheduler()
+                sched_info = scheduler.compute_adaptive_schedule(
                     db=db,
                     student_id=student_id,
                     skill_id=topic.id,
@@ -61,13 +71,10 @@ class PersonalizedRevisionRecommendationEngine:
 
                 forget_prob = pred["forget_probability"]
                 risk_level = pred["risk_level"]
-                rec_date_str = pred["recommended_revision_date"]
-                rec_date = datetime.fromisoformat(rec_date_str.replace("Z", "+00:00")) if rec_date_str else datetime.now(timezone.utc)
+                rec_date_str = sched_info["recommended_revision_date"]
+                rec_date = datetime.strptime(rec_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
 
                 now = datetime.now(timezone.utc)
-                if rec_date.tzinfo is None:
-                    rec_date = rec_date.replace(tzinfo=timezone.utc)
-
                 delta_days = (rec_date - now).total_seconds() / 86400.0
 
                 # Status determination
@@ -110,6 +117,11 @@ class PersonalizedRevisionRecommendationEngine:
                     "top_risk_factor": top_risk_factor,
                     "estimated_revision_minutes": est_minutes,
                     "status": status,
+                    "is_adaptive": True,
+                    "interval_days": sched_info["new_interval_days"],
+                    "previous_interval_days": sched_info["previous_interval_days"],
+                    "adjustment_direction": sched_info["adjustment_direction"],
+                    "adaptation_reason": sched_info["adaptation_reason"],
                     "model_version": pred["model_version"]
                 }
                 revision_queue.append(item)

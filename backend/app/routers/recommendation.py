@@ -127,6 +127,18 @@ def get_student_revision_queue(
     return queue
 
 
+@router.get("/recommendations/adaptive-queue", response_model=List[Dict[str, Any]])
+def get_student_adaptive_queue(
+    student_profile: StudentProfile = Depends(require_onboarding_completed),
+    db: Session = Depends(get_db)
+) -> Any:
+    """Fetch personalized adaptive revision queue with dynamically calculated intervals and pedagogical explanations."""
+    from app.services.revision_recommendation import get_revision_engine
+    engine = get_revision_engine()
+    queue = engine.generate_student_revision_queue(db, student_id=student_profile.id)
+    return queue
+
+
 @router.post("/recommendations/{recommendation_id}/complete")
 def complete_revision_recommendation(
     recommendation_id: str,

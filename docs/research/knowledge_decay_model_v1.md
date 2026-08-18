@@ -120,3 +120,22 @@ The $v1.4$ Production Analytics Layer aggregates predictions, recommendations, a
 
 > [!CAUTION]
 > **Separation Invariant**: Model evaluation quality (PR-AUC: `0.9729`, Brier: `0.0310`) must never be confused with intervention efficacy or causal retention improvement. All analytics strictly report observational metrics.
+
+---
+
+## 10. Adaptive Revision Scheduling & Closed-Loop Personalization ($v1.5$)
+
+### Policy Layer Architecture
+The $v1.5$ Adaptive Revision Scheduler operates **above** the calibrated $v1.1$ ML model without altering the underlying probability predictions $P(\text{forgetting within 7 days})$:
+
+$$\text{ML Prediction } P(\text{forget}) \longrightarrow \text{Risk Band} \longrightarrow \text{Performance & Outcome Adjustment} \longrightarrow \text{Bounded Clamping } [1, 30] \longrightarrow \text{Personalized Next Revision Date}$$
+
+### Policy Rules & Boundaries
+- **Base Risk Intervals**: HIGH ($2\text{ days}$), MEDIUM ($5\text{ days}$), LOW ($14\text{ days}$).
+- **Outcome Adaptation**:
+  - High Mastery ($\ge 85\%$): Extends interval ($\text{Base} \times 1.4 + \text{Bonus}$).
+  - Sub-Threshold Mastery ($< 70\%$): Shortens interval ($\max(1, \lfloor \text{Base} \times 0.6 \rfloor)$).
+- **Strict Boundaries**: Revision intervals are clamped between $1\text{ day}$ (min) and $30\text{ days}$ (max).
+
+> [!NOTE]
+> **Policy Invariant**: The adaptive scheduler is a deterministic, rule-based policy layer operating on top of the calibrated knowledge-decay predictor. It does not alter the underlying model probability.
