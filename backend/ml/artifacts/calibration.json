@@ -1,4 +1,4 @@
 {
-  "method": "Platt Scaling (Sigmoid)",
-  "brier_score": 0.0289
+  "method": "Isotonic Regression",
+  "brier_score": 0.031
 }

@@ -144,6 +144,7 @@ class KnowledgeDecayPredictionService:
             "subject_id": subject_id,
             "forget_probability": forget_prob,
             "forget_probability_percentage": forget_prob_pct,
+            "forget_probability_7d": forget_prob,
             "risk_level": risk_level,
             "prediction_horizon_days": 7,
             "estimated_forgetting_window": est_window,
@@ -152,7 +153,7 @@ class KnowledgeDecayPredictionService:
             "top_risk_factors": risk_factors,
             "top_protective_factors": protective_factors,
             "feature_vector": feats,
-            "model_version": self.model_version
+            "model_version": self.model_version or "knowledge-decay-v1.1"
         }
 
 def get_prediction_service() -> KnowledgeDecayPredictionService:

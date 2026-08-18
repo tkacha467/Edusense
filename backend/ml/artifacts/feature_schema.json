@@ -1,5 +1,5 @@
 {
-  "model_version": "knowledge-decay-v1.0",
+  "model_version": "knowledge-decay-v1.1",
   "feature_names": [
     "days_since_last_review",
     "total_attempts",
@@ -11,5 +11,5 @@
     "decay_vulnerability_index"
   ],
   "num_features": 8,
-  "created_at": "2026-08-18T06:25:58.772222+00:00"
+  "created_at": "2026-08-18T06:56:40.343480+00:00"
 }

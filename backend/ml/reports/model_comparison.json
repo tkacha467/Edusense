@@ -1,51 +1,81 @@
 {
-  "model_version": "knowledge-decay-v1.0",
+  "model_version": "knowledge-decay-v1.1",
   "selected_model": "Logistic Regression",
+  "calibration_method": "Isotonic Regression",
   "evaluation_metric_primary": "PR-AUC",
   "results": {
-    "Logistic Regression": {
-      "roc_auc": 1.0,
-      "pr_auc": 1.0,
+    "Baseline (Class Prior)": {
+      "roc_auc": 0.5,
+      "pr_auc": 0.2486,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1_score": 0.0,
+      "accuracy": 0.7467,
+      "brier_score": 0.1892,
+      "training_time_ms": 0.01,
+      "inference_time_ms": 0.01
+    },
+    "Baseline (Time Heuristic)": {
+      "roc_auc": 0.9596,
+      "pr_auc": 0.9126,
       "precision": 1.0,
-      "recall": 1.0,
-      "f1_score": 1.0,
-      "accuracy": 1.0,
-      "brier_score": 0.0193,
-      "training_time_ms": 6.6,
-      "inference_time_ms": 0.0
+      "recall": 0.4737,
+      "f1_score": 0.6429,
+      "accuracy": 0.8667,
+      "brier_score": 0.0869,
+      "training_time_ms": 0.01,
+      "inference_time_ms": 0.01
+    },
+    "Logistic Regression": {
+      "roc_auc": 0.9859,
+      "pr_auc": 0.9729,
+      "precision": 1.0,
+      "recall": 0.8421,
+      "f1_score": 0.9143,
+      "accuracy": 0.96,
+      "brier_score": 0.0323,
+      "training_time_ms": 9.44,
+      "inference_time_ms": 0.014
     },
     "Random Forest": {
-      "roc_auc": 0.965,
-      "pr_auc": 0.8122,
-      "precision": 0.6667,
-      "recall": 0.5714,
-      "f1_score": 0.6154,
-      "accuracy": 0.9167,
-      "brier_score": 0.0478,
-      "training_time_ms": 102.81,
-      "inference_time_ms": 0.083
+      "roc_auc": 0.9737,
+      "pr_auc": 0.945,
+      "precision": 0.9375,
+      "recall": 0.7895,
+      "f1_score": 0.8571,
+      "accuracy": 0.9333,
+      "brier_score": 0.0553,
+      "training_time_ms": 108.18,
+      "inference_time_ms": 0.071
     },
     "Gradient Boosting": {
-      "roc_auc": 0.9677,
-      "pr_auc": 0.8386,
-      "precision": 0.7143,
-      "recall": 0.7143,
-      "f1_score": 0.7143,
-      "accuracy": 0.9333,
-      "brier_score": 0.0599,
-      "training_time_ms": 102.6,
+      "roc_auc": 0.9671,
+      "pr_auc": 0.9244,
+      "precision": 0.875,
+      "recall": 0.7368,
+      "f1_score": 0.8,
+      "accuracy": 0.9067,
+      "brier_score": 0.0671,
+      "training_time_ms": 83.88,
       "inference_time_ms": 0.0
     },
     "XGBoost": {
-      "roc_auc": 0.9623,
-      "pr_auc": 0.7572,
-      "precision": 0.6667,
-      "recall": 0.5714,
-      "f1_score": 0.6154,
-      "accuracy": 0.9167,
-      "brier_score": 0.0628,
-      "training_time_ms": 123.5,
-      "inference_time_ms": 0.033
+      "roc_auc": 0.9774,
+      "pr_auc": 0.961,
+      "precision": 0.9375,
+      "recall": 0.7895,
+      "f1_score": 0.8571,
+      "accuracy": 0.9333,
+      "brier_score": 0.041,
+      "training_time_ms": 235.67,
+      "inference_time_ms": 0.022
     }
+  },
+  "student_holdout_results": {
+    "num_test_students": 8,
+    "num_test_samples": 101,
+    "pr_auc": 0.9396,
+    "roc_auc": 0.9766,
+    "brier_score": 0.0504
   }
 }

@@ -1,0 +1,50 @@
+[
+  {
+    "feature": "days_since_last_review",
+    "correlation": 0.5923,
+    "leakage_risk": "MEDIUM",
+    "available_before_prediction": true
+  },
+  {
+    "feature": "total_attempts",
+    "correlation": -0.0759,
+    "leakage_risk": "LOW",
+    "available_before_prediction": true
+  },
+  {
+    "feature": "correct_attempts",
+    "correlation": -0.1425,
+    "leakage_risk": "LOW",
+    "available_before_prediction": true
+  },
+  {
+    "feature": "historical_accuracy",
+    "correlation": -0.2913,
+    "leakage_risk": "LOW",
+    "available_before_prediction": true
+  },
+  {
+    "feature": "consecutive_correct_streak",
+    "correlation": -0.1707,
+    "leakage_risk": "LOW",
+    "available_before_prediction": true
+  },
+  {
+    "feature": "avg_response_time_seconds",
+    "correlation": 0.0296,
+    "leakage_risk": "LOW",
+    "available_before_prediction": true
+  },
+  {
+    "feature": "practice_frequency",
+    "correlation": -0.2483,
+    "leakage_risk": "LOW",
+    "available_before_prediction": true
+  },
+  {
+    "feature": "decay_vulnerability_index",
+    "correlation": 0.506,
+    "leakage_risk": "MEDIUM",
+    "available_before_prediction": true
+  }
+]

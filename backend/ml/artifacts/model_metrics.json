@@ -1,15 +1,23 @@
 {
-  "model_version": "knowledge-decay-v1.0",
+  "model_version": "knowledge-decay-v1.1",
   "selected_model": "Logistic Regression",
+  "calibration_method": "Isotonic Regression",
   "metrics": {
-    "pr_auc": 1.0,
-    "roc_auc": 1.0,
-    "brier_score": 0.0289,
+    "pr_auc": 0.9729,
+    "roc_auc": 0.9859,
+    "brier_score": 0.031,
     "precision": 1.0,
-    "recall": 1.0,
-    "f1_score": 1.0
+    "recall": 0.8421,
+    "f1_score": 0.9143
   },
-  "training_samples": 280,
-  "test_samples": 60,
-  "training_timestamp": "2026-08-18T06:25:58.772222+00:00"
+  "student_holdout_metrics": {
+    "num_test_students": 8,
+    "num_test_samples": 101,
+    "pr_auc": 0.9396,
+    "roc_auc": 0.9766,
+    "brier_score": 0.0504
+  },
+  "training_samples": 350,
+  "test_samples": 75,
+  "training_timestamp": "2026-08-18T06:56:40.344482+00:00"
 }
