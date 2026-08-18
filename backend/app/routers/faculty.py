@@ -244,3 +244,62 @@ def get_research_intelligence_analytics(
     from app.services.analytics import AnalyticsService
     service = AnalyticsService()
     return service.get_research_analytics_summary(db)
+
+
+class FacultyInterventionCreateInput(BaseModel):
+    student_id: str
+    skill_id: str
+    intervention_type: str = Field("REVISION", description="REVISION, PRACTICE, TARGETED_ASSESSMENT")
+    priority: str = Field("URGENT", description="URGENT, HIGH, MEDIUM, LOW")
+    notes: Optional[str] = None
+
+
+@router.post("/interventions", status_code=status.HTTP_201_CREATED)
+def create_faculty_intervention(
+    input_data: FacultyInterventionCreateInput,
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    Create a targeted learning intervention for an at-risk student on a specific skill.
+    Enforces strict RBAC and preserves ML prediction snapshot.
+    """
+    from app.services.faculty_intervention_service import get_faculty_intervention_service
+    service = get_faculty_intervention_service()
+    result = service.create_intervention(
+        db=db,
+        faculty_user_id=current_user.id,
+        student_id=input_data.student_id,
+        skill_id=input_data.skill_id,
+        intervention_type=input_data.intervention_type,
+        priority=input_data.priority,
+        notes=input_data.notes
+    )
+    return result
+
+
+@router.get("/interventions")
+def list_faculty_interventions(
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    List all targeted interventions initiated by the authenticated faculty member.
+    """
+    from app.services.faculty_intervention_service import get_faculty_intervention_service
+    service = get_faculty_intervention_service()
+    return service.list_faculty_interventions(db, faculty_user_id=current_user.id)
+
+
+@router.get("/students/{student_id}/interventions")
+def get_student_interventions_history(
+    student_id: str,
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    Fetch intervention history and outcome tracking for a specific student.
+    """
+    from app.services.faculty_intervention_service import get_faculty_intervention_service
+    service = get_faculty_intervention_service()
+    return service.get_student_interventions(db, faculty_user_id=current_user.id, student_id=student_id)

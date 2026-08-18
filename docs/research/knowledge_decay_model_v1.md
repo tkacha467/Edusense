@@ -176,3 +176,20 @@ The $v1.6$ Student Knowledge Health Dashboard exposes backend ML predictions, ad
 
 > [!TIP]
 > **Non-Causal Representation**: The student interface presents risk trends and revision schedules as predicted estimates and observed adherence patterns, avoiding unfounded causal claims.
+
+---
+
+## 12. Faculty Intervention Intelligence ($v1.7$)
+
+### Closed-Loop Decision-Support Architecture
+The $v1.7$ Faculty Intervention Intelligence System enables authorized educators to identify at-risk students, inspect model factor attributions, and send targeted learning interventions:
+
+$$\text{Faculty Deep-Dive} \longrightarrow \text{Model Factor Attribution} \longrightarrow \text{Intervention Created} \longrightarrow \text{Student Revision Queue} \longrightarrow \text{Post-Intervention Outcome}$$
+
+### Key Scientific Invariants
+1. **Prediction Preservation**: The original prediction snapshot (`forget_probability_at_intervention`, `risk_level_at_intervention`, `model_version`, `recommended_revision_date`) is preserved at creation and never overwritten.
+2. **Duplicate Protection**: Prevents duplicate active interventions for the same $(\text{student\_id}, \text{skill\_id})$ pair.
+3. **Observational Outcome Metrics**: Post-intervention outcomes calculate $\Delta P = P_{\text{before}} - P_{\text{after}}$, explicitly labeled as *observed risk reduction* without claiming causal treatment effects.
+
+> [!IMPORTANT]
+> **Non-Causal Attribution Disclaimer**: This system estimates observational intervention outcomes and does not establish causal treatment effects. Causal inference requires future randomized controlled trials.
