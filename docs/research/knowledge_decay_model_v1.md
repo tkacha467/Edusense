@@ -105,3 +105,18 @@ $$\text{RECOMMENDATION\_CREATED} \longrightarrow \text{VIEWED} \longrightarrow \
 
 > [!IMPORTANT]
 > **Scientific Attribution Disclaimer**: These metrics are strictly observational and measure behavioral adherence and temporal risk trend changes. They do not establish formal causal effects. Future controlled experimental designs ($A/B$ testing with randomized intervention timing) will utilize this event chain for causal inference.
+
+---
+
+## 9. Production Analytics Layer ($v1.4$)
+
+### Student, Faculty & Research Analytics Architecture
+The $v1.4$ Production Analytics Layer aggregates predictions, recommendations, and outcome events into actionable insights:
+
+1. **Student Knowledge Health Score**:
+   $$\text{Health} = 0.40 \cdot \text{Accuracy} + 0.35 \cdot (1.0 - P_{\text{forget}}) + 0.25 \cdot \text{Consistency}$$
+2. **Faculty Cohort Risk Heatmap**: Cohort matrix ($Students \times Subjects$) populated with real $v1.1$ ML probabilities and Isotonic risk classifications.
+3. **Research Model Intelligence & Monitoring**: Tracks champion algorithm parameters (`Logistic Regression`), active model version (`knowledge-decay-v1.1`), calibration method (`Isotonic Regression`), and sample size metrics (`350 train`, `75 test`, `8 unseen holdout students`).
+
+> [!CAUTION]
+> **Separation Invariant**: Model evaluation quality (PR-AUC: `0.9729`, Brier: `0.0310`) must never be confused with intervention efficacy or causal retention improvement. All analytics strictly report observational metrics.

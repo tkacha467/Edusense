@@ -218,3 +218,29 @@ def get_student_intervention_history(
     service = get_outcome_service()
     history = service.get_student_effectiveness(db, student_id=student_id)
     return history
+
+
+@router.get("/analytics/cohort-skills")
+def get_faculty_cohort_skills_analytics(
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    Fetch skill-level cohort weakness summary for faculty curriculum planning.
+    """
+    from app.services.analytics import AnalyticsService
+    service = AnalyticsService()
+    return service.get_cohort_skill_analytics(db)
+
+
+@router.get("/analytics/research")
+def get_research_intelligence_analytics(
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    Fetch research monitoring metrics and model intelligence analytics.
+    """
+    from app.services.analytics import AnalyticsService
+    service = AnalyticsService()
+    return service.get_research_analytics_summary(db)
