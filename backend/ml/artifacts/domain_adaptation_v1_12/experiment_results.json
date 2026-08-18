@@ -1,0 +1,56 @@
+{
+  "Experiment_1_Raw_Original": {
+    "PR_AUC": 0.8889,
+    "ROC_AUC": 0.7222,
+    "Brier_Score": 0.2467,
+    "ECE": 0.306,
+    "Precision": 1.0,
+    "Recall": 0.6667,
+    "F1": 0.8
+  },
+  "Experiment_2_Normalized_Original": {
+    "PR_AUC": 0.8514,
+    "ROC_AUC": 0.6667,
+    "Brier_Score": 0.4449,
+    "ECE": 0.497,
+    "Precision": 1.0,
+    "Recall": 0.1667,
+    "F1": 0.2857
+  },
+  "Experiment_3_Raw_PrevalenceAdj": {
+    "PR_AUC": 0.8889,
+    "ROC_AUC": 0.7222,
+    "Brier_Score": 0.3213,
+    "ECE": 0.3579,
+    "Precision": 0.8,
+    "Recall": 0.6667,
+    "F1": 0.7273
+  },
+  "Experiment_4_Normalized_PrevalenceAdj": {
+    "PR_AUC": 0.8514,
+    "ROC_AUC": 0.6667,
+    "Brier_Score": 0.3419,
+    "ECE": 0.3858,
+    "Precision": 0.6667,
+    "Recall": 0.6667,
+    "F1": 0.6667
+  },
+  "Experiment_5_Normalized_Calibrated": {
+    "PR_AUC": 0.8514,
+    "ROC_AUC": 0.6667,
+    "Brier_Score": 0.2383,
+    "ECE": 0.1474,
+    "Precision": 0.6667,
+    "Recall": 1.0,
+    "F1": 0.8
+  },
+  "Experiment_6_Normalized_PrevAdj_Calibrated": {
+    "PR_AUC": 0.8514,
+    "ROC_AUC": 0.6667,
+    "Brier_Score": 0.2383,
+    "ECE": 0.1474,
+    "Precision": 0.6667,
+    "Recall": 1.0,
+    "F1": 0.8
+  }
+}
