@@ -1,0 +1,34 @@
+{
+  "days_since_last_review": {
+    "psi": 0.3237,
+    "status": "CRITICAL"
+  },
+  "total_attempts": {
+    "psi": 0.005,
+    "status": "LOW"
+  },
+  "correct_attempts": {
+    "psi": 0.0321,
+    "status": "LOW"
+  },
+  "historical_accuracy": {
+    "psi": 0.1565,
+    "status": "WARNING"
+  },
+  "consecutive_correct_streak": {
+    "psi": 0.124,
+    "status": "WARNING"
+  },
+  "avg_response_time_seconds": {
+    "psi": 0.1257,
+    "status": "WARNING"
+  },
+  "practice_frequency": {
+    "psi": 0.1399,
+    "status": "WARNING"
+  },
+  "decay_vulnerability_index": {
+    "psi": 0.0063,
+    "status": "LOW"
+  }
+}

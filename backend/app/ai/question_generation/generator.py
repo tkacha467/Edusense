@@ -37,21 +37,20 @@ class AIQuestionGenerator:
         elif isinstance(result, dict) and "questions" in result:
             return result["questions"]
 
-        # Default fallback list of questions
-        fallback = []
-        for _ in range(count):
-            fallback.append({
-                "question_text": f"What is the average time complexity of operations in {topic_name}?",
-                "question_type": question_type.upper(),
-                "difficulty_level": difficulty.lower(),
-                "marks": 1.0,
-                "correct_answer": "B",
-                "explanation": f"{topic_name} halving principle yields logarithmic complexity.",
-                "hint": "Think about tree height properties.",
-                "options": [
-                    {"option_label": "A", "option_text": "O(1)"},
-                    {"option_label": "B", "option_text": "O(log N)"},
-                    {"option_label": "C", "option_text": "O(N)"}
-                ]
-            })
-        return fallback
+        # 1. Try Ollama local LLM for dynamic RAG question generation if available
+        try:
+            from app.services.ollama_service import generate_questions_with_ollama
+            ollama_questions = generate_questions_with_ollama(
+                subject_name=subject_name,
+                topic_name=topic_name,
+                difficulty=difficulty,
+                count=count
+            )
+            if ollama_questions and len(ollama_questions) > 0:
+                return ollama_questions
+        except Exception:
+            pass
+
+        # 2. Hybrid Fallback: Use domain-specific questions dataset grounded in topic and subject
+        from app.ai.question_generation.domain_questions import get_domain_questions
+        return get_domain_questions(subject_name=subject_name, topic_name=topic_name, count=count)

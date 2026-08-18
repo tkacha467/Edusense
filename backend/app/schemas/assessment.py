@@ -73,6 +73,16 @@ class AssessmentSessionCreate(PydanticBase):
     time_limit_seconds: Optional[int] = Field(None, gt=0)
     generation_method: GenerationMethod = GenerationMethod.AI
 
+class AdaptiveStartInput(PydanticBase):
+    subject_id: str
+    total_questions: int = 5
+    title: str = "Adaptive AI Assessment"
+
+class SubmitSingleAnswerInput(PydanticBase):
+    question_id: str
+    selected_option_id: str
+    time_taken_seconds: int = 15
+
 class AssessmentSessionUpdate(PydanticBase):
     """Schema for updating an assessment session."""
     status: Optional[AssessmentStatus] = None

@@ -44,7 +44,7 @@ class AssessmentSessionRepository(BaseRepository[AssessmentSession]):
             session.scored_marks = scored_marks
             session.total_marks = total_marks
             session.percentage = (scored_marks / total_marks * 100) if total_marks > 0 else 0.0
-            session.time_taken = time_taken
+            session.time_taken_seconds = time_taken
             session.status = AssessmentStatus.COMPLETED
             session.completed_at = datetime.now(timezone.utc)
             db.flush()

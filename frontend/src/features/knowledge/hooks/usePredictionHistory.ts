@@ -3,8 +3,8 @@ import apiClient from '../../../api/apiClient';
 
 export interface PredictionSnapshot {
   id: string;
-  student_id: str;
-  skill_id: str;
+  student_id: string;
+  skill_id: string;
   interaction_order: number;
   past_attempts: number;
   past_correct: number;

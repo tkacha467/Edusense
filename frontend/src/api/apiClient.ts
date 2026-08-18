@@ -23,9 +23,28 @@ const apiClient = axios.create({
   timeout: 10000,
 });
 
-// Request interceptor adding Authorization Bearer token from localStorage
+// Request interceptor adding Authorization Bearer token from active session
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('edu_auth_token') || localStorage.getItem('token');
+  let token: string | null = null;
+  
+  // 1. Prefer token from active edu_session
+  const sessionStr = sessionStorage.getItem('edu_session') || localStorage.getItem('edu_session');
+  if (sessionStr) {
+    try {
+      const parsed = JSON.parse(sessionStr);
+      if (parsed?.token) {
+        token = parsed.token;
+      }
+    } catch (e) {}
+  }
+  
+  // 2. Fallback to direct token keys
+  if (!token) {
+    token = localStorage.getItem('edu_auth_token') || 
+            sessionStorage.getItem('edu_auth_token') || 
+            localStorage.getItem('token');
+  }
+
   if (token && !config.headers.Authorization) {
     config.headers.Authorization = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
   }

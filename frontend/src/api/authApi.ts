@@ -18,10 +18,15 @@ export const login = async (email: string, password: string, expectedRole?: User
       throw new ApiError(`Please use the ${userRole === UserRole.FACULTY ? 'teacher' : userRole} login portal.`, 403);
     }
 
+    const profileId = data.profile_id || data.user.id;
+    const userId = data.user.id;
+
     const session: AuthSession = {
       token: devToken,
       user: {
-        id: data.user.id,
+        id: profileId,
+        profileId: profileId,
+        userId: userId,
         email: data.user.email,
         fullName: data.user.display_name || data.user.email.split('@')[0],
         role: data.user.role === UserRole.STUDENT ? UserRole.STUDENT : UserRole.FACULTY,
@@ -52,7 +57,7 @@ export interface RegisterUserData {
   department_id?: string;
 }
 
-export const register = async (userData: RegisterUserData): Promise<User> => {
+export const register = async (userData: RegisterUserData): Promise<AuthSession> => {
   try {
     const uid = `uid_${userData.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
     const devToken = `dev-token-${uid}`;
@@ -69,18 +74,27 @@ export const register = async (userData: RegisterUserData): Promise<User> => {
     });
 
     const data = response.data;
-    const user: User = {
-      id: data.id,
-      email: data.email,
-      fullName: data.display_name || data.email.split('@')[0],
-      role: data.role === UserRole.STUDENT ? UserRole.STUDENT : UserRole.FACULTY,
-      createdAt: data.created_at,
-      onboardingCompleted: false
+    const profileId = data.profile_id || data.user.id;
+    const userId = data.user.id;
+
+    const session: AuthSession = {
+      token: devToken,
+      user: {
+        id: profileId,
+        profileId: profileId,
+        userId: userId,
+        email: data.user.email,
+        fullName: data.user.display_name || data.user.email.split('@')[0],
+        role: data.user.role === UserRole.STUDENT ? UserRole.STUDENT : UserRole.FACULTY,
+        createdAt: data.user.created_at,
+        onboardingCompleted: data.onboarding_completed
+      },
+      expiresAt: Date.now() + 24 * 60 * 60 * 1000
     };
 
     localStorage.setItem('edu_auth_token', devToken);
-    localStorage.setItem('edu_user', JSON.stringify(user));
-    return user;
+    localStorage.setItem('edu_user', JSON.stringify(session.user));
+    return session;
   } catch (err: any) {
     if (err instanceof ApiError) throw err;
     const message = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Registration failed';
@@ -88,17 +102,48 @@ export const register = async (userData: RegisterUserData): Promise<User> => {
   }
 };
 
+export const getCurrentUser = async (): Promise<AuthSession> => {
+  try {
+    const token = localStorage.getItem('edu_auth_token') || sessionStorage.getItem('edu_auth_token');
+    const response = await apiClient.get('/auth/me', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    });
+    const data = response.data;
+    const profileId = data.profile_id || data.user.id;
+    const userId = data.user.id;
+
+    const session: AuthSession = {
+      token: token || '',
+      user: {
+        id: profileId,
+        profileId: profileId,
+        userId: userId,
+        email: data.user.email,
+        fullName: data.user.display_name || data.user.email.split('@')[0],
+        role: data.user.role === UserRole.STUDENT ? UserRole.STUDENT : UserRole.FACULTY,
+        createdAt: data.user.created_at,
+        onboardingCompleted: data.onboarding_completed
+      },
+      expiresAt: Date.now() + 24 * 60 * 60 * 1000
+    };
+    localStorage.setItem('edu_user', JSON.stringify(session.user));
+    return session;
+  } catch (err: any) {
+    if (err instanceof ApiError) throw err;
+    const message = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Failed to fetch current user';
+    throw new ApiError(message, err?.response?.status || 401);
+  }
+};
+
 export const logout = async (userId: string): Promise<void> => {
   localStorage.removeItem('edu_auth_token');
   localStorage.removeItem('edu_user');
+  localStorage.removeItem('edu_session');
+  sessionStorage.removeItem('edu_session');
 };
 
 export const forgotPassword = async (email: string): Promise<{ success: boolean; message: string }> => {
   return { success: true, message: 'If an account exists, verification instructions have been sent.' };
-};
-
-export const verifyOtp = async (email: string, otp: string): Promise<boolean> => {
-  return true;
 };
 
 export const resetPassword = async (email: string, newPassword: string): Promise<void> => {

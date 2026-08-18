@@ -1,0 +1,27 @@
+{
+  "timestamp": "2026-08-18T18:12:29.202808+00:00",
+  "sample_counts": {
+    "total": 43,
+    "calibration": 34,
+    "test": 9
+  },
+  "prevalence": {
+    "p_dev": 0.0925,
+    "p_ext_cal": 0.6471
+  },
+  "student_holdout": {
+    "cal_learners": 18,
+    "test_learners": 5,
+    "overlap": 0
+  },
+  "baselines": {
+    "majority_classifier": {
+      "Brier_Score": 0.2226,
+      "ECE": 0.0196
+    },
+    "recency_heuristic": {
+      "Brier_Score": 0.3096,
+      "ECE": 0.4533
+    }
+  }
+}

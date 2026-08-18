@@ -1,0 +1,15 @@
+{
+  "model_version": "knowledge-decay-v1.1",
+  "feature_names": [
+    "days_since_last_review",
+    "total_attempts",
+    "correct_attempts",
+    "historical_accuracy",
+    "consecutive_correct_streak",
+    "avg_response_time_seconds",
+    "practice_frequency",
+    "decay_vulnerability_index"
+  ],
+  "num_features": 8,
+  "created_at": "2026-08-18T07:18:12.354922+00:00"
+}

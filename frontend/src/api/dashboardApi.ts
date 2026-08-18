@@ -8,6 +8,9 @@ export interface DashboardKnowledgeProfile {
   retention_score: number;
   mastered: boolean;
   topic_name?: string;
+  skill?: any;
+  last_predicted_at?: string;
+  title?: string;
 }
 
 export interface DashboardTask {
@@ -17,6 +20,7 @@ export interface DashboardTask {
   estimated_minutes: number;
   is_completed: boolean;
   priority: string;
+  title?: string;
 }
 
 export interface DashboardAssessmentHistory {

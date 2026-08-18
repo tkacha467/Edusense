@@ -32,8 +32,8 @@ export const FacultySignUp: React.FC = () => {
         department: values.department || '',
         institution_id: values.institution_id || '',
       });
-      showToast('Account requested. An admin will review your access.', 'success');
-      navigate('/faculty/login');
+      showToast('Welcome to EduSense! Account created successfully.', 'success');
+      navigate('/dashboard');
     } catch (error: unknown) {
       const err = error as { message?: string };
       showToast(err.message || 'Registration failed', 'error');

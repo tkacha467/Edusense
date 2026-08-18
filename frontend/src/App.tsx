@@ -7,7 +7,6 @@ import { StudentLayout } from './layouts/StudentLayout';
 
 // Shared
 import { NotFound } from './pages/security/NotFound';
-import { VerifyEmail } from './pages/security/VerifyEmail';
 
 // Features - Auth
 import { LandingPage } from './features/auth/pages/LandingPage';
@@ -34,6 +33,10 @@ import { AIAssistantPage } from './features/ai-assistant/AIAssistantPage';
 import { FacultyDashboard } from './features/dashboard/FacultyDashboard';
 import { FacultyAnalytics } from './pages/faculty/FacultyAnalytics';
 import { FacultyReports } from './pages/faculty/FacultyReports';
+import { StudentSearchPage } from './features/faculty/pages/StudentSearchPage';
+import { FacultyPredictionPage } from './features/faculty/pages/FacultyPredictionPage';
+import { ModelMonitoringPage } from './features/faculty/pages/ModelMonitoringPage';
+import { FacultyAIAssistant } from './features/ai-assistant/FacultyAIAssistant';
 
 // Admin Pages
 import { AdminDashboard } from './pages/admin/AdminDashboard';
@@ -65,8 +68,6 @@ function App() {
           <Route path="/faculty/login" element={<FacultyLogin />} />
           <Route path="/faculty/signup" element={<FacultySignUp />} />
           <Route path="/faculty/forgot-password" element={<FacultyForgotPassword />} />
-
-          <Route path="/verify" element={<VerifyEmail />} />
         </Route>
         
         {/* Student Onboarding */}
@@ -78,10 +79,12 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={[UserRole.FACULTY, UserRole.SUPER_ADMIN]} />}>
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<FacultyDashboard />} />
-            <Route path="/prediction" element={<div className="p-8 text-center text-gray-500">Prediction — Coming in Phase 7</div>} />
+            <Route path="/faculty/students" element={<StudentSearchPage />} />
+            <Route path="/prediction" element={<FacultyPredictionPage />} />
+            <Route path="/faculty/model-monitoring" element={<ModelMonitoringPage />} />
             <Route path="/analytics" element={<FacultyAnalytics />} />
             <Route path="/reports" element={<FacultyReports />} />
-            <Route path="/assistant" element={<div className="p-8 text-center text-gray-500">AI Assistant — Coming in Phase 7</div>} />
+            <Route path="/assistant" element={<FacultyAIAssistant />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<div className="p-8 text-center text-gray-500">Settings — Coming in Phase 7</div>} />
           </Route>

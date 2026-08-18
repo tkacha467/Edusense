@@ -113,3 +113,87 @@ def skip_study_task(
     task = rec_service.skip_task(db, task_id=task_id, student_id=student_profile.id)
     db.commit()
     return task
+
+
+@router.get("/recommendations/revision-queue", response_model=List[Dict[str, Any]])
+def get_student_revision_queue(
+    student_profile: StudentProfile = Depends(require_onboarding_completed),
+    db: Session = Depends(get_db)
+) -> Any:
+    """Fetch prioritized Student Revision Queue backed by ML Knowledge Decay Predictor."""
+    from app.services.revision_recommendation import get_revision_engine
+    engine = get_revision_engine()
+    queue = engine.generate_student_revision_queue(db, student_id=student_profile.id)
+    return queue
+
+
+@router.get("/recommendations/adaptive-queue", response_model=List[Dict[str, Any]])
+def get_student_adaptive_queue(
+    student_profile: StudentProfile = Depends(require_onboarding_completed),
+    db: Session = Depends(get_db)
+) -> Any:
+    """Fetch personalized adaptive revision queue with dynamically calculated intervals and pedagogical explanations."""
+    from app.services.revision_recommendation import get_revision_engine
+    engine = get_revision_engine()
+    queue = engine.generate_student_revision_queue(db, student_id=student_profile.id)
+    return queue
+
+
+@router.post("/recommendations/{recommendation_id}/complete")
+def complete_revision_recommendation(
+    recommendation_id: str,
+    skill_id: Optional[str] = None,
+    student_profile: StudentProfile = Depends(require_onboarding_completed),
+    db: Session = Depends(get_db)
+) -> Any:
+    """Mark a revision recommendation task as completed with outcome tracking."""
+    from app.services.revision_outcome_service import get_outcome_service
+    service = get_outcome_service()
+    result = service.mark_completed_with_outcome(db, student_id=student_profile.id, recommendation_id=recommendation_id, skill_id=skill_id)
+    return result
+
+
+@router.post("/recommendations/{recommendation_id}/view")
+def record_recommendation_view(
+    recommendation_id: str,
+    skill_id: Optional[str] = None,
+    student_profile: StudentProfile = Depends(require_onboarding_completed)
+) -> Any:
+    """Record VIEWED event for a recommendation."""
+    from app.services.revision_outcome_service import get_outcome_service
+    service = get_outcome_service()
+    return service.record_event(recommendation_id, student_profile.id, skill_id or "general", "VIEWED")
+
+
+@router.post("/recommendations/{recommendation_id}/start")
+def record_recommendation_start(
+    recommendation_id: str,
+    skill_id: Optional[str] = None,
+    student_profile: StudentProfile = Depends(require_onboarding_completed)
+) -> Any:
+    """Record STARTED event for a recommendation."""
+    from app.services.revision_outcome_service import get_outcome_service
+    service = get_outcome_service()
+    return service.record_event(recommendation_id, student_profile.id, skill_id or "general", "STARTED")
+
+
+@router.get("/recommendations/outcomes")
+def get_recommendation_outcomes(
+    student_profile: StudentProfile = Depends(require_onboarding_completed),
+    db: Session = Depends(get_db)
+) -> Any:
+    """Fetch recommendation outcomes for the authenticated student."""
+    from app.services.revision_outcome_service import get_outcome_service
+    service = get_outcome_service()
+    return service.get_student_effectiveness(db, student_id=student_profile.id)
+
+
+@router.get("/recommendations/effectiveness")
+def get_recommendation_effectiveness(
+    student_profile: StudentProfile = Depends(require_onboarding_completed),
+    db: Session = Depends(get_db)
+) -> Any:
+    """Fetch learning outcome & effectiveness summary for authenticated student."""
+    from app.services.revision_outcome_service import get_outcome_service
+    service = get_outcome_service()
+    return service.get_student_effectiveness(db, student_id=student_profile.id)

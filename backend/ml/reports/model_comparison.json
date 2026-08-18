@@ -1,0 +1,81 @@
+{
+  "model_version": "knowledge-decay-v1.1",
+  "selected_model": "Logistic Regression",
+  "calibration_method": "Isotonic Regression",
+  "evaluation_metric_primary": "PR-AUC",
+  "results": {
+    "Baseline (Class Prior)": {
+      "roc_auc": 0.5,
+      "pr_auc": 0.2486,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1_score": 0.0,
+      "accuracy": 0.7467,
+      "brier_score": 0.1892,
+      "training_time_ms": 0.01,
+      "inference_time_ms": 0.01
+    },
+    "Baseline (Time Heuristic)": {
+      "roc_auc": 0.9596,
+      "pr_auc": 0.9126,
+      "precision": 1.0,
+      "recall": 0.4737,
+      "f1_score": 0.6429,
+      "accuracy": 0.8667,
+      "brier_score": 0.0869,
+      "training_time_ms": 0.01,
+      "inference_time_ms": 0.01
+    },
+    "Logistic Regression": {
+      "roc_auc": 0.9859,
+      "pr_auc": 0.9729,
+      "precision": 1.0,
+      "recall": 0.8421,
+      "f1_score": 0.9143,
+      "accuracy": 0.96,
+      "brier_score": 0.0323,
+      "training_time_ms": 7.27,
+      "inference_time_ms": 0.0
+    },
+    "Random Forest": {
+      "roc_auc": 0.9737,
+      "pr_auc": 0.945,
+      "precision": 0.9375,
+      "recall": 0.7895,
+      "f1_score": 0.8571,
+      "accuracy": 0.9333,
+      "brier_score": 0.0553,
+      "training_time_ms": 167.64,
+      "inference_time_ms": 0.148
+    },
+    "Gradient Boosting": {
+      "roc_auc": 0.9671,
+      "pr_auc": 0.9244,
+      "precision": 0.875,
+      "recall": 0.7368,
+      "f1_score": 0.8,
+      "accuracy": 0.9067,
+      "brier_score": 0.0671,
+      "training_time_ms": 137.15,
+      "inference_time_ms": 0.013
+    },
+    "XGBoost": {
+      "roc_auc": 0.9774,
+      "pr_auc": 0.961,
+      "precision": 0.9375,
+      "recall": 0.7895,
+      "f1_score": 0.8571,
+      "accuracy": 0.9333,
+      "brier_score": 0.041,
+      "training_time_ms": 176.19,
+      "inference_time_ms": 0.013
+    }
+  },
+  "student_holdout_results": {
+    "num_test_students": 8,
+    "num_test_samples": 99,
+    "pr_auc": 0.9485,
+    "roc_auc": 0.9778,
+    "brier_score": 0.0558
+  }
+}

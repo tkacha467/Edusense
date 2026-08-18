@@ -19,7 +19,6 @@ export const ROUTES = {
   FACULTY_FORGOT_PASSWORD: '/faculty/forgot-password',
 
   // Shared auth
-  VERIFY_EMAIL: '/verify',
   
   // Student protected
   ONBOARDING: '/onboarding',
@@ -30,6 +29,9 @@ export const ROUTES = {
   
   // Faculty protected
   FACULTY_DASHBOARD: '/dashboard',
+  FACULTY_PREDICTION: '/prediction',
+  FACULTY_STUDENTS: '/faculty/students',
+  FACULTY_ASSISTANT: '/assistant',
   FACULTY_PROFILE: '/profile',
   
   // Error

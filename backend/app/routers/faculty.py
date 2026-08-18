@@ -126,3 +126,180 @@ def list_enrolled_students(
         "page_size": page_size,
         "total_pages": total_pages
     }
+
+
+@router.get("/analytics/overview")
+def get_faculty_class_overview(
+    subject_id: Optional[str] = Query(None, description="Optional subject filter"),
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+    faculty_service: FacultyService = Depends(get_faculty_service)
+) -> Any:
+    """
+    Fetch comprehensive class-wide analytics overview for faculty dashboard.
+    """
+    faculty_profile = faculty_service.get_profile_by_user_id(db, user_id=current_user.id)
+    return faculty_service.get_class_analytics_overview(
+        db=db,
+        faculty_id=faculty_profile.id,
+        subject_id=subject_id
+    )
+
+
+@router.get("/students/{student_id}/analytics")
+def get_student_deep_dive_analytics(
+    student_id: str,
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db),
+    faculty_service: FacultyService = Depends(get_faculty_service)
+) -> Any:
+    """
+    Fetch deep-dive knowledge retention, decay forecasts, and recommendations for a single student.
+    """
+    return faculty_service.get_student_deep_dive_analytics(
+        db=db,
+        student_id=student_id
+    )
+
+
+@router.get("/students/{student_id}/risk-profile")
+def get_student_risk_profile(
+    student_id: str,
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    Fetch authorized student knowledge decay risk profile and ML predictions for faculty inspection.
+    """
+    from app.services.knowledge_decay_prediction import get_prediction_service
+    pred_service = get_prediction_service()
+    prediction = pred_service.predict_forgetting_risk(db=db, student_id=student_id)
+    return prediction
+
+
+@router.get("/analytics/risk-heatmap")
+def get_cohort_risk_heatmap(
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    Fetch cohort risk matrix populated with live ML Knowledge Decay predictions.
+    """
+    from app.services.revision_recommendation import get_revision_engine
+    engine = get_revision_engine()
+    heatmap = engine.generate_cohort_risk_heatmap(db, faculty_user_id=current_user.id)
+    return heatmap
+
+
+@router.get("/analytics/intervention-effectiveness")
+def get_faculty_intervention_effectiveness(
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    Fetch cohort-wide recommendation outcome & intervention effectiveness metrics for faculty analytics.
+    """
+    from app.services.revision_outcome_service import get_outcome_service
+    service = get_outcome_service()
+    metrics = service.get_faculty_intervention_effectiveness(db, faculty_user_id=current_user.id)
+    return metrics
+
+
+@router.get("/students/{student_id}/intervention-history")
+def get_student_intervention_history(
+    student_id: str,
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    Fetch student intervention history and learning outcome metrics for faculty deep-dive inspection.
+    """
+    from app.services.revision_outcome_service import get_outcome_service
+    service = get_outcome_service()
+    history = service.get_student_effectiveness(db, student_id=student_id)
+    return history
+
+
+@router.get("/analytics/cohort-skills")
+def get_faculty_cohort_skills_analytics(
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    Fetch skill-level cohort weakness summary for faculty curriculum planning.
+    """
+    from app.services.analytics import AnalyticsService
+    service = AnalyticsService()
+    return service.get_cohort_skill_analytics(db)
+
+
+@router.get("/analytics/research")
+def get_research_intelligence_analytics(
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    Fetch research monitoring metrics and model intelligence analytics.
+    """
+    from app.services.analytics import AnalyticsService
+    service = AnalyticsService()
+    return service.get_research_analytics_summary(db)
+
+
+class FacultyInterventionCreateInput(BaseModel):
+    student_id: str
+    skill_id: str
+    intervention_type: str = Field("REVISION", description="REVISION, PRACTICE, TARGETED_ASSESSMENT")
+    priority: str = Field("URGENT", description="URGENT, HIGH, MEDIUM, LOW")
+    notes: Optional[str] = None
+
+
+@router.post("/interventions", status_code=status.HTTP_201_CREATED)
+def create_faculty_intervention(
+    input_data: FacultyInterventionCreateInput,
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    Create a targeted learning intervention for an at-risk student on a specific skill.
+    Enforces strict RBAC and preserves ML prediction snapshot.
+    """
+    from app.services.faculty_intervention_service import get_faculty_intervention_service
+    service = get_faculty_intervention_service()
+    result = service.create_intervention(
+        db=db,
+        faculty_user_id=current_user.id,
+        student_id=input_data.student_id,
+        skill_id=input_data.skill_id,
+        intervention_type=input_data.intervention_type,
+        priority=input_data.priority,
+        notes=input_data.notes
+    )
+    return result
+
+
+@router.get("/interventions")
+def list_faculty_interventions(
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    List all targeted interventions initiated by the authenticated faculty member.
+    """
+    from app.services.faculty_intervention_service import get_faculty_intervention_service
+    service = get_faculty_intervention_service()
+    return service.list_faculty_interventions(db, faculty_user_id=current_user.id)
+
+
+@router.get("/students/{student_id}/interventions")
+def get_student_interventions_history(
+    student_id: str,
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    Fetch intervention history and outcome tracking for a specific student.
+    """
+    from app.services.faculty_intervention_service import get_faculty_intervention_service
+    service = get_faculty_intervention_service()
+    return service.get_student_interventions(db, faculty_user_id=current_user.id, student_id=student_id)

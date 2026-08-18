@@ -6,9 +6,9 @@ import {
   register as apiRegister,
   logout as apiLogout,
   forgotPassword as apiForgotPassword,
-  verifyOtp as apiVerifyOtp,
   resetPassword as apiResetPassword,
-  updateProfile as apiUpdateProfile
+  updateProfile as apiUpdateProfile,
+  getCurrentUser as apiGetCurrentUser
 } from '../api/authApi';
 import { useToast } from './ToastContext';
 
@@ -18,10 +18,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   login: (email: string, pass: string, rememberMe: boolean, expectedRole?: UserRoleType) => Promise<void>;
-  register: (userData: any) => Promise<void>;
+  register: (userData: any) => Promise<AuthSession>;
   logout: () => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
-  verifyOtp: (email: string, otp: string) => Promise<boolean>;
   resetPassword: (email: string, newPassword: string) => Promise<void>;
   restoreSession: () => void;
   updateProfile: (updates: Partial<User>) => Promise<void>;
@@ -34,25 +33,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
   const { showToast } = useToast();
 
-  const restoreSession = () => {
+  const restoreSession = async () => {
     setLoading(true);
     try {
-      // 1. Check sessionStorage (highest priority - active tab session)
-      let stored = sessionStorage.getItem('edu_session');
-      
-      // 2. Fallback to localStorage (remember me session)
-      if (!stored) {
-        stored = localStorage.getItem('edu_session');
+      const token = localStorage.getItem('edu_auth_token') || sessionStorage.getItem('edu_auth_token');
+      if (token) {
+        try {
+          const freshSession = await apiGetCurrentUser();
+          setCurrentUser(freshSession.user);
+          setLoading(false);
+          return;
+        } catch (err) {
+          console.warn("Failed to refresh user session via /auth/me", err);
+        }
       }
 
+      let stored = sessionStorage.getItem('edu_session') || localStorage.getItem('edu_session');
       if (stored) {
         const session: AuthSession = JSON.parse(stored);
         if (session.expiresAt > Date.now()) {
           setCurrentUser(session.user);
         } else {
-          // Auto logout after expiration
           sessionStorage.removeItem('edu_session');
           localStorage.removeItem('edu_session');
+          localStorage.removeItem('edu_auth_token');
+          sessionStorage.removeItem('edu_auth_token');
           setCurrentUser(null);
         }
       } else {
@@ -73,22 +78,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, pass: string, rememberMe: boolean, expectedRole?: UserRoleType) => {
     const session = await apiLogin(email, pass, expectedRole);
     
-    // Clear any old sessions
     sessionStorage.removeItem('edu_session');
     localStorage.removeItem('edu_session');
+    sessionStorage.removeItem('edu_auth_token');
+    localStorage.removeItem('edu_auth_token');
 
-    // Store based on Remember Me
     if (rememberMe) {
       localStorage.setItem('edu_session', JSON.stringify(session));
+      localStorage.setItem('edu_auth_token', session.token);
     } else {
       sessionStorage.setItem('edu_session', JSON.stringify(session));
+      sessionStorage.setItem('edu_auth_token', session.token);
     }
     
     setCurrentUser(session.user);
   };
 
-  const register = async (userData: any) => {
-    await apiRegister(userData);
+  const register = async (userData: any): Promise<AuthSession> => {
+    const session = await apiRegister(userData);
+    
+    sessionStorage.removeItem('edu_session');
+    localStorage.removeItem('edu_session');
+    sessionStorage.removeItem('edu_auth_token');
+    localStorage.removeItem('edu_auth_token');
+
+    localStorage.setItem('edu_session', JSON.stringify(session));
+    localStorage.setItem('edu_auth_token', session.token);
+    setCurrentUser(session.user);
+    return session;
   };
 
   const logout = async () => {
@@ -101,6 +118,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } finally {
       sessionStorage.removeItem('edu_session');
       localStorage.removeItem('edu_session');
+      sessionStorage.removeItem('edu_auth_token');
+      localStorage.removeItem('edu_auth_token');
+      localStorage.removeItem('edu_user');
       setCurrentUser(null);
       showToast('Logged out successfully', 'success');
     }
@@ -109,10 +129,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const forgotPassword = async (email: string) => {
     const res = await apiForgotPassword(email);
     showToast(res.message, 'info');
-  };
-
-  const verifyOtp = async (email: string, otp: string) => {
-    return await apiVerifyOtp(email, otp);
   };
 
   const resetPassword = async (email: string, newPassword: string) => {
@@ -125,7 +141,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const updatedUser = await apiUpdateProfile(currentUser.id, updates);
     setCurrentUser(updatedUser);
     
-    // Also update session in Storage
     const sessionKey = 'edu_session';
     const stored = sessionStorage.getItem(sessionKey) || localStorage.getItem(sessionKey);
     if (stored) {
@@ -149,7 +164,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       register,
       logout,
       forgotPassword,
-      verifyOtp,
       resetPassword,
       restoreSession,
       updateProfile

@@ -77,21 +77,47 @@ class StudentService:
 
     def complete_onboarding(self, db: Session, student_id: str) -> StudentProfile:
         """
-        Mark the student's onboarding as complete.
-
-        Args:
-            db (Session): Database session.
-            student_id (str): The unique identifier of the student profile.
-
-        Returns:
-            StudentProfile: The updated student profile.
-
-        Raises:
-            NotFoundException: If the profile does not exist.
+        Mark the student's onboarding as complete, automatically enroll in default subjects,
+        and initialize baseline StudentSkill proficiency records for ML inference.
         """
-        # Business rule: verify profile exists
         profile = self.get_profile(db, student_id)
+        
+        # 1. Automatically enroll in all active default subjects if not already enrolled
+        existing_enrollments = self.get_enrolled_subjects(db, student_id)
+        if not existing_enrollments:
+            from app.repositories.learning import SubjectRepository
+            subject_repo = SubjectRepository()
+            active_subjects = subject_repo.get_active_subjects(db)
+            if active_subjects:
+                subject_ids = [s.id for s in active_subjects]
+                self.enroll_in_subjects(db, student_id=student_id, subject_ids=subject_ids)
+        
+        # 2. Automatically initialize StudentSkill baseline proficiencies for ML model
+        self.initialize_student_skills(db, student_id)
+        
         return self.student_profile_repo.update(db, db_obj=profile, obj_in={"onboarding_completed": True})
+
+    def initialize_student_skills(self, db: Session, student_id: str) -> None:
+        """
+        Initialize baseline StudentSkill proficiency records (proficiency_level=0.5) for all available skills.
+        Ensures ML knowledge decay models have valid feature vectors for new students.
+        """
+        from app.models.learning import Skill, StudentSkill
+        skills = db.query(Skill).all()
+        existing_skills = db.query(StudentSkill).filter(StudentSkill.student_id == student_id).all()
+        existing_skill_ids = {s.skill_id for s in existing_skills}
+        
+        for skill in skills:
+            if skill.id not in existing_skill_ids:
+                new_student_skill = StudentSkill(
+                    student_id=student_id,
+                    skill_id=skill.id,
+                    proficiency_level=0.5,
+                    total_attempts=0,
+                    correct_attempts=0
+                )
+                db.add(new_student_skill)
+        db.commit()
 
     def set_learning_preferences(self, db: Session, student_id: str, **kwargs) -> LearningPreference:
         """
@@ -128,35 +154,22 @@ class StudentService:
 
     def enroll_in_subjects(self, db: Session, student_id: str, subject_ids: List[str]) -> List[StudentSubject]:
         """
-        Enroll a student in multiple subjects.
-
-        Args:
-            db (Session): Database session.
-            student_id (str): The student profile ID.
-            subject_ids (List[str]): A list of subject IDs to enroll the student in.
-
-        Returns:
-            List[StudentSubject]: A list of new enrollment entities.
-
-        Raises:
-            NotFoundException: If the student does not exist.
+        Enroll a student in multiple subjects and initialize skill proficiencies.
         """
-        # Business rule: verify student exists
         self.get_profile(db, student_id)
 
-        # Skip already-enrolled subjects
         existing_enrollments = self.get_enrolled_subjects(db, student_id)
         enrolled_subject_ids = {enrollment.subject_id for enrollment in existing_enrollments}
 
         new_enrollments = []
         for subject_id in subject_ids:
             if subject_id not in enrolled_subject_ids:
-                # In a real app, verify subject exists here using SubjectRepository
                 new_enrollment = self.student_subject_repo.create(
                     db, obj_in={"student_id": student_id, "subject_id": subject_id}
                 )
                 new_enrollments.append(new_enrollment)
 
+        self.initialize_student_skills(db, student_id)
         return new_enrollments
 
     def get_enrolled_subjects(self, db: Session, student_id: str) -> List[StudentSubject]:

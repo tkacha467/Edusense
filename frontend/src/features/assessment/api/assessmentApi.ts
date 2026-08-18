@@ -3,6 +3,12 @@ import type { Question } from '../types/question';
 import type { AssessmentAnswer } from '../types/answer';
 import type { AssessmentResult } from '../types/assessment';
 
+export interface NextQuestionResponse {
+  completed: boolean;
+  question_number?: number;
+  question?: Question;
+}
+
 export const assessmentApi = {
   getQuestions: async (sessionId: string): Promise<Question[]> => {
     const response = await apiClient.get<Question[]>(`/assessments/${sessionId}/questions`);
@@ -10,15 +16,11 @@ export const assessmentApi = {
   },
 
   saveAnswer: async (sessionId: string, answer: AssessmentAnswer): Promise<{ success: boolean }> => {
-    // Audit Note: POST /assessment-sessions/{session_id}/answers does not exist on the backend.
-    // Simulating progress caching in local storage as a fallback.
     const key = `edusense_draft_answers_${sessionId}`;
     const raw = localStorage.getItem(key);
     const answers = raw ? JSON.parse(raw) : {};
     answers[answer.question_id] = answer.selected_option_id;
     localStorage.setItem(key, JSON.stringify(answers));
-    
-    console.log(`[Draft Saved Locally] Session: ${sessionId}, Question: ${answer.question_id}, Option: ${answer.selected_option_id}`);
     return { success: true };
   },
 
@@ -30,8 +32,49 @@ export const assessmentApi = {
         time_taken_seconds: r.time_taken_seconds || 15
       }))
     });
-    // Clear draft answers on success
     localStorage.removeItem(`edusense_draft_answers_${sessionId}`);
+    return response.data;
+  },
+
+  // --- Adaptive Assessment API ---
+  startAdaptiveSession: async (subjectId: string, totalQuestions: number = 5): Promise<{ id: string }> => {
+    const response = await apiClient.post<{ id: string }>('/assessments/start', {
+      subject_id: subjectId,
+      total_questions: totalQuestions,
+      title: 'Adaptive Cognitive Assessment'
+    });
+    return response.data;
+  },
+
+  getNextQuestion: async (sessionId: string): Promise<NextQuestionResponse> => {
+    const response = await apiClient.get<NextQuestionResponse>(`/assessments/${sessionId}/next`);
+    return response.data;
+  },
+
+  submitSingleAnswer: async (
+    sessionId: string, 
+    questionId: string, 
+    selectedOptionId: string, 
+    timeTakenSeconds: number = 15
+  ): Promise<{ is_correct: boolean; correct_option_id: string }> => {
+    const response = await apiClient.post<{ is_correct: boolean; correct_option_id: string }>(
+      `/assessments/${sessionId}/answer`, 
+      {
+        question_id: questionId,
+        selected_option_id: selectedOptionId,
+        time_taken_seconds: timeTakenSeconds
+      }
+    );
+    return response.data;
+  },
+
+  finishAdaptiveSession: async (sessionId: string): Promise<AssessmentResult> => {
+    const response = await apiClient.post<AssessmentResult>(`/assessments/${sessionId}/finish`);
+    return response.data;
+  },
+
+  getAdaptiveSummary: async (sessionId: string): Promise<AssessmentResult> => {
+    const response = await apiClient.get<AssessmentResult>(`/assessments/${sessionId}/summary`);
     return response.data;
   }
 };

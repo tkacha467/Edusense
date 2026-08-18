@@ -39,6 +39,8 @@ def get_current_user(
     if not user:
         raise UnauthorizedException("Authenticated user record not found in database. Please register.")
 
+    print(f"[AUTH AUDIT] User ID: '{user.id}', Role: '{user.role}', Email: '{user.email}'")
+
     if user.is_deleted:
         raise ForbiddenException("Account has been deactivated or deleted.")
 
@@ -109,6 +111,24 @@ RequireSuperAdmin = require_role(UserRole.SUPER_ADMIN)
 RequireFaculty = require_role(UserRole.FACULTY, UserRole.ADMIN, UserRole.SUPER_ADMIN)
 
 
+def get_current_student_profile(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> StudentProfile:
+    """
+    Dependency ensuring the user has a valid StudentProfile.
+    """
+    role_val = current_user.role.value if hasattr(current_user.role, 'value') else str(current_user.role)
+    if str(role_val).lower() != "student":
+        raise ForbiddenException(f"Only student accounts can access this feature. Current role: '{current_user.role}'.")
+
+    profile = student_repo.get_by_user_id(db, user_id=current_user.id)
+    if not profile:
+        raise NotFoundException("Student profile record not found.")
+
+    return profile
+
+
 def require_onboarding_completed(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -117,13 +137,7 @@ def require_onboarding_completed(
     Dependency ensuring the student has completed the onboarding flow.
     Returns the StudentProfile entity.
     """
-    if current_user.role != UserRole.STUDENT.value and current_user.role != UserRole.STUDENT:
-        raise ForbiddenException("Only student users have onboarding requirements.")
-
-    profile = student_repo.get_by_user_id(db, user_id=current_user.id)
-    if not profile:
-        raise NotFoundException("Student profile not found.")
-
+    profile = get_current_student_profile(current_user=current_user, db=db)
     if not profile.onboarding_completed:
         raise ForbiddenException(
             "Student onboarding incomplete. Please complete onboarding at '/api/v1/onboarding' first."

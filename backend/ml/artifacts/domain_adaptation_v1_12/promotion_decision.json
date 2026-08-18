@@ -1,0 +1,12 @@
+{
+  "decision": "DO NOT PROMOTE",
+  "classification_status": "PARTIAL IMPROVEMENT",
+  "rationale": "Prevalence adjustment and Platt calibration improve probability scale and Brier score, but overall discrimination (ROC-AUC) remains unproven for full production replacement without retraining. The production model champion must remain unchanged.",
+  "best_experiment": "Experiment_5_Normalized_Calibrated",
+  "metrics_comparison": {
+    "raw_brier": 0.2467,
+    "best_adapted_brier": 0.2383,
+    "raw_roc_auc": 0.7222,
+    "best_adapted_roc_auc": 0.6667
+  }
+}

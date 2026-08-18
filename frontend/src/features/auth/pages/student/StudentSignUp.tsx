@@ -27,8 +27,8 @@ export const StudentSignUp: React.FC = () => {
         password: values.password || '',
         role: 'student',
       });
-      showToast('Registration successful! Please verify your email.', 'success');
-      navigate('/verify');
+      showToast('Welcome to EduSense! Account created successfully.', 'success');
+      navigate('/student/dashboard');
     } catch (error: unknown) {
       const err = error as { message?: string };
       showToast(err.message || 'Registration failed', 'error');
