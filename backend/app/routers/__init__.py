@@ -14,6 +14,7 @@ from app.routers.ai import router as ai_router
 from app.routers.rag import router as rag_router
 from app.routers.admin import router as admin_router
 from app.routers.predictions import router as predictions_router
+from app.routers.model_monitoring import router as model_monitoring_router
 from app.dashboard.router import router as dashboard_router
 
 __all__ = [
@@ -31,6 +32,7 @@ __all__ = [
     "admin_router",
     "dashboard_router",
     "predictions_router",
+    "model_monitoring_router",
     "include_routers",
 ]
 
@@ -49,5 +51,6 @@ def include_routers(app: FastAPI, prefix: str = "/api/v1") -> None:
     app.include_router(ai_router, prefix=prefix)
     app.include_router(rag_router, prefix=prefix)
     app.include_router(admin_router, prefix=prefix)
-    app.include_router(dashboard_router, prefix=prefix)
     app.include_router(predictions_router, prefix=prefix)
+    app.include_router(model_monitoring_router, prefix=prefix)
+    app.include_router(dashboard_router, prefix=prefix)

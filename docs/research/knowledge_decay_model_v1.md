@@ -210,3 +210,25 @@ $$\text{Faculty Dashboard} \longrightarrow \text{Student Search} \longrightarrow
 
 > [!TIP]
 > **Token & API Efficiency**: Operates with zero polling loops, single-source authorization headers, and targeted query invalidation to preserve network performance.
+
+---
+
+## 14. Production Model Monitoring & Drift Detection ($v1.9$)
+
+### Statistical Observability & Drift Monitoring Architecture
+The $v1.9$ Production Model Monitoring system tracks feature population stability, prediction distribution drift, post-outcome model performance degradation, and probability calibration error without automated model retraining:
+
+$$\text{Production Inference} \longrightarrow \text{Prediction Log} \longrightarrow \text{PSI Drift Evaluation} \longrightarrow \text{Model Health Aggregation } (\text{HEALTHY / WARNING / CRITICAL / INSUFFICIENT\_DATA})$$
+
+### Operational Heuristics & Threshold Policy
+- **Population Stability Index (PSI)**:
+  - $\text{PSI} < 0.10$: `LOW` (Healthy feature distribution)
+  - $0.10 \le \text{PSI} < 0.25$: `WARNING` (Moderate distributional shift)
+  - $\text{PSI} \ge 0.25$: `CRITICAL` (Significant feature drift requiring manual research audit)
+- **Sample Size Rules**:
+  - Feature & Prediction Drift: Minimum 30 observations.
+  - Post-Outcome Performance & Calibration (PR-AUC, ROC-AUC, Brier score, ECE): Minimum 50 labeled outcomes.
+  - Samples below minimum return status `INSUFFICIENT_DATA` cleanly.
+
+> [!CAUTION]
+> **Retraining Invariant**: Automatic model retraining is intentionally disabled. Data drift does not automatically imply performance failure; model updates require human research review, offline candidate evaluation, and explicit deployment authorization.
