@@ -189,3 +189,32 @@ def get_cohort_risk_heatmap(
     engine = get_revision_engine()
     heatmap = engine.generate_cohort_risk_heatmap(db, faculty_user_id=current_user.id)
     return heatmap
+
+
+@router.get("/analytics/intervention-effectiveness")
+def get_faculty_intervention_effectiveness(
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    Fetch cohort-wide recommendation outcome & intervention effectiveness metrics for faculty analytics.
+    """
+    from app.services.revision_outcome_service import get_outcome_service
+    service = get_outcome_service()
+    metrics = service.get_faculty_intervention_effectiveness(db, faculty_user_id=current_user.id)
+    return metrics
+
+
+@router.get("/students/{student_id}/intervention-history")
+def get_student_intervention_history(
+    student_id: str,
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    Fetch student intervention history and learning outcome metrics for faculty deep-dive inspection.
+    """
+    from app.services.revision_outcome_service import get_outcome_service
+    service = get_outcome_service()
+    history = service.get_student_effectiveness(db, student_id=student_id)
+    return history

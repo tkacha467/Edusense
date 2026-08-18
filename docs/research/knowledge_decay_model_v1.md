@@ -86,3 +86,22 @@ Evaluating model degradation when feature subsets are omitted:
 1. **Prediction Horizon**: The model explicitly predicts $P(\text{forgetting within 7 days})$. It does not claim exact daily interval time-to-event precision.
 2. **Cold Start**: Students with no history receive prior default estimates ($P = 0.50$, Medium Risk).
 3. **Ollama Boundary**: Natural language explanation generation is strictly decoupled from numerical inference. Ollama translates feature contributions into pedagogical feedback without inventing probability values.
+
+---
+
+## 8. Recommendation Outcome Evaluation ($v1.3$)
+
+### Observational Research Design
+To measure the long-term effectiveness of proactive ML-guided interventions, EduSense $v1.3$ instruments a complete recommendation outcome event lifecycle:
+
+$$\text{RECOMMENDATION\_CREATED} \longrightarrow \text{VIEWED} \longrightarrow \text{STARTED} \longrightarrow \text{COMPLETED} \longrightarrow \text{POST\_REVISION\_ASSESSMENT}$$
+
+### Outcome Metric Definitions
+1. **Completion Adherence Rate**:
+   $$\text{Completion Rate} = \frac{\text{Completed Recommendations}}{\text{Total Recommendations Eligible}}$$
+2. **Observational Risk Reduction**:
+   $$\Delta P_{\text{forget}} = P_{\text{forget, before}} - P_{\text{forget, after}}$$
+3. **Skill Recovery Rate**: Proportion of skills transitioning from `HIGH` or `MEDIUM` risk to `LOW` risk following a completed revision task within a 1–14 day follow-up window.
+
+> [!IMPORTANT]
+> **Scientific Attribution Disclaimer**: These metrics are strictly observational and measure behavioral adherence and temporal risk trend changes. They do not establish formal causal effects. Future controlled experimental designs ($A/B$ testing with randomized intervention timing) will utilize this event chain for causal inference.
