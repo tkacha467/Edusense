@@ -160,3 +160,32 @@ def get_student_deep_dive_analytics(
         db=db,
         student_id=student_id
     )
+
+
+@router.get("/students/{student_id}/risk-profile")
+def get_student_risk_profile(
+    student_id: str,
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    Fetch authorized student knowledge decay risk profile and ML predictions for faculty inspection.
+    """
+    from app.services.knowledge_decay_prediction import get_prediction_service
+    pred_service = get_prediction_service()
+    prediction = pred_service.predict_forgetting_risk(db=db, student_id=student_id)
+    return prediction
+
+
+@router.get("/analytics/risk-heatmap")
+def get_cohort_risk_heatmap(
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    Fetch cohort risk matrix populated with live ML Knowledge Decay predictions.
+    """
+    from app.services.revision_recommendation import get_revision_engine
+    engine = get_revision_engine()
+    heatmap = engine.generate_cohort_risk_heatmap(db, faculty_user_id=current_user.id)
+    return heatmap

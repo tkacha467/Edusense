@@ -113,3 +113,28 @@ def skip_study_task(
     task = rec_service.skip_task(db, task_id=task_id, student_id=student_profile.id)
     db.commit()
     return task
+
+
+@router.get("/recommendations/revision-queue", response_model=List[Dict[str, Any]])
+def get_student_revision_queue(
+    student_profile: StudentProfile = Depends(require_onboarding_completed),
+    db: Session = Depends(get_db)
+) -> Any:
+    """Fetch prioritized Student Revision Queue backed by ML Knowledge Decay Predictor."""
+    from app.services.revision_recommendation import get_revision_engine
+    engine = get_revision_engine()
+    queue = engine.generate_student_revision_queue(db, student_id=student_profile.id)
+    return queue
+
+
+@router.post("/recommendations/{recommendation_id}/complete")
+def complete_revision_recommendation(
+    recommendation_id: str,
+    student_profile: StudentProfile = Depends(require_onboarding_completed),
+    db: Session = Depends(get_db)
+) -> Any:
+    """Mark a revision recommendation task as completed."""
+    from app.services.revision_recommendation import get_revision_engine
+    engine = get_revision_engine()
+    result = engine.complete_revision_task(db, student_id=student_profile.id, recommendation_id=recommendation_id)
+    return result

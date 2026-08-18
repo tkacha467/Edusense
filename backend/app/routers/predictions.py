@@ -82,3 +82,24 @@ def get_forgetting_prediction(
     )
 
     return result
+
+
+@router.get("/forgetting/{skill_id}", response_model=PredictionResponseDTO)
+def get_skill_forgetting_prediction(
+    skill_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    prediction_service: KnowledgeDecayPredictionService = Depends(get_prediction_service)
+) -> Any:
+    """
+    Fetch skill-level forgetting prediction for authenticated student.
+    """
+    student_prof = db.query(StudentProfile).filter_by(user_id=current_user.id).first()
+    if not student_prof:
+        raise NotFoundException("Student profile not found.")
+
+    return prediction_service.predict_forgetting_risk(
+        db=db,
+        student_id=student_prof.id,
+        skill_id=skill_id
+    )
