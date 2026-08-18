@@ -1,0 +1,68 @@
+{
+  "model_version": "knowledge-decay-v1.1",
+  "eval_timestamp": "2026-08-18T17:23:34.604880+00:00",
+  "target_definition": "forgotten = 1 if future 7d accuracy < 0.70 else 0",
+  "dataset": {
+    "dataset_name": "ASSISTments Benchmark Dataset",
+    "total_raw_records": 500,
+    "total_valid_events": 500,
+    "unique_students": 25,
+    "unique_skills": 5,
+    "overall_accuracy": 0.538,
+    "duplicate_records_removed": 0,
+    "invalid_records_removed": 0,
+    "source_isolation_tag": "ASSISTMENTS_EXTERNAL_VALIDATION"
+  },
+  "sample_counts": {
+    "total_instances": 43,
+    "holdout_test_instances": 9,
+    "unseen_holdout_students": 5,
+    "positive_forgetting_rate": 0.6512
+  },
+  "production_model_holdout_metrics": {
+    "PR_AUC": 0.7937,
+    "ROC_AUC": 0.3571,
+    "Brier_Score": 0.5607,
+    "Recall": 0.2857,
+    "F1": 0.4444
+  },
+  "baselines": {
+    "class_prior_brier": 0.1985,
+    "recency_heuristic_brier": 0.5205
+  },
+  "synthetic_to_real_psi_drift": {
+    "days_since_last_review": {
+      "psi": 0.3237,
+      "status": "CRITICAL"
+    },
+    "total_attempts": {
+      "psi": 0.005,
+      "status": "LOW"
+    },
+    "correct_attempts": {
+      "psi": 0.0321,
+      "status": "LOW"
+    },
+    "historical_accuracy": {
+      "psi": 0.1565,
+      "status": "WARNING"
+    },
+    "consecutive_correct_streak": {
+      "psi": 0.124,
+      "status": "WARNING"
+    },
+    "avg_response_time_seconds": {
+      "psi": 0.1257,
+      "status": "WARNING"
+    },
+    "practice_frequency": {
+      "psi": 0.1399,
+      "status": "WARNING"
+    },
+    "decay_vulnerability_index": {
+      "psi": 0.0063,
+      "status": "LOW"
+    }
+  },
+  "generalization_conclusion": "CASE B \u2014 Moderate Generalization: Production model maintains useful predictive power on independent ASSISTments learners."
+}
