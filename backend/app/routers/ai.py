@@ -4,9 +4,11 @@ from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.dependencies.auth import get_current_user, require_onboarding_completed
+from app.dependencies.auth import get_current_user, require_onboarding_completed, require_role
 from app.dependencies.database import get_db
 from app.models import User, StudentProfile
+from app.core.enums import UserRole
+from app.services.ollama_service import get_ollama_rag_service
 from app.ai.orchestrator import AIOrchestrator
 from app.ai.chat.assistant import AIStudyAssistant
 from app.ai.flashcards.generator import FlashcardGenerator
@@ -177,3 +179,81 @@ async def get_ai_usage_stats(
 ) -> Any:
     """Returns AI Platform latency, usage, and observability statistics."""
     return orchestrator.get_usage_statistics()
+
+
+# Pydantic Schemas for Dedicated RAG Ollama Endpoints
+class StudentExplanationInput(BaseModel):
+    student_id: str
+    skill_id: Optional[str] = "general"
+
+class RevisionGuidanceInput(BaseModel):
+    student_id: str
+    skill_id: Optional[str] = "general"
+
+class FacultyStudentAnalysisInput(BaseModel):
+    student_id: str
+
+class GroundedMCQGenInput(BaseModel):
+    subject_name: str = "Computer Science"
+    topic_name: str = "Data Structures"
+    difficulty: Optional[str] = "INTERMEDIATE"
+    count: Optional[int] = 3
+
+
+@router.post("/student-explanation")
+def get_grounded_student_explanation(
+    input_data: StudentExplanationInput,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    USE CASE A — Student Risk Explanation.
+    Provides grounded AI explanation of ML forgetting risk with strict context isolation.
+    """
+    service = get_ollama_rag_service()
+    return service.explain_student_risk(db, current_user, input_data.student_id, input_data.skill_id)
+
+
+@router.post("/revision-guidance")
+def get_grounded_revision_guidance(
+    input_data: RevisionGuidanceInput,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    USE CASE B — Student Revision Guidance.
+    """
+    service = get_ollama_rag_service()
+    return service.generate_revision_guidance(db, current_user, input_data.student_id, input_data.skill_id)
+
+
+@router.post("/faculty-student-analysis")
+def get_faculty_student_analysis(
+    input_data: FacultyStudentAnalysisInput,
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    USE CASE C — Faculty Student Analysis.
+    """
+    service = get_ollama_rag_service()
+    return service.explain_faculty_student_analysis(db, current_user, input_data.student_id)
+
+
+@router.post("/generate-question")
+def generate_grounded_questions(
+    input_data: GroundedMCQGenInput,
+    current_user: User = Depends(require_role(UserRole.FACULTY, UserRole.ADMIN)),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    USE CASE E — Grounded MCQ Question Generation with Option & Correct Answer Validation.
+    """
+    service = get_ollama_rag_service()
+    return service.generate_grounded_mcqs(
+        db,
+        subject_name=input_data.subject_name,
+        topic_name=input_data.topic_name,
+        difficulty=input_data.difficulty or "INTERMEDIATE",
+        count=input_data.count or 3
+    )
